@@ -1,0 +1,253 @@
+\documentclass[12pt]{article}
+\renewcommand*\rmdefault{ppl}
+\usepackage[margin=2cm]{geometry} \geometry{letterpaper}
+\usepackage[parfill]{parskip}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[style=numeric,backref=true,backrefstyle=none,abbreviate=false,urldate=iso,seconds=true]{biblatex} \addbibresource{totsum.bib}
+\usepackage{csquotes}
+\usepackage{amssymb,amsmath,amsthm}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{tikzscale}
+\usepackage{pgfplots} \pgfplotsset{compat=1.15}
+\usepackage{url}
+\usepackage{multicol}
+\usepackage[yyyymmdd,hhmmss]{datetime}
+\usepackage[bottom]{footmisc}
+\usepackage{hyperref}
+\usepackage{color} \newcommand{\todo}[0]{{\textcolor{red}{\textbf{TODO: }}}}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+\newcommand{\eqn}[1]{\begin{displaymath} #1 \end{displaymath}}
+\newcommand{\neqn}[1]{\begin{equation} #1 \end{equation}}
+\newcommand{\tweqn}[1]{\begin{displaymath}\resizebox{\textwidth}{!}{$\displaystyle #1 $}\end{displaymath}}
+\newcommand{\ntweqn}[1]{\begin{equation}\resizebox{\textwidth}{!}{$\displaystyle #1 $}\end{equation}}
+\newcommand{\floor}[1]{{\left\lfloor #1 \right\rfloor}}
+\newcommand{\ceil}[1]{{\left\lceil #1 \right\rceil}}
+\newcommand{\vect}[1]{\left\langle #1 \right\rangle}
+\newcommand{\deriv}[2]{\frac{d #1}{d #2}}
+\newcommand{\derop}[1]{\frac{d}{d #1}}
+\newcommand{\partiald}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\partialop}[1]{\frac{\partial}{\partial #1}}
+\newcommand{\integral}[4]{\displaystyle\int_{#3}^{#4} \! #1 \, d#2}
+\newcommand{\dintegral}[4]{\displaystyle\int\!\!\!\!\int_{#3}^{#4} #1 \, d#2}
+\newcommand{\tintegral}[4]{\displaystyle\int\!\!\!\!\int\!\!\!\!\int_{#3}^{#4} #1 \, d#2}
+\newcommand{\disp}[0]{\displaystyle}
+\newcommand{\abs}[1]{\left\vert #1 \right\vert}
+\newcommand{\grad}[0]{\vec{\nabla\!}\,}
+\newcommand{\epsil}[0]{\varepsilon}
+\newcommand{\eval}[3]{\left. #1 \right|_{#2}^{#3}}
+\newcommand{\realpart}[1]{{\mathfrak{Re}\!\left\{#1\right\}}}
+\newcommand{\ipart}[1]{{\mathfrak{Im}\!\left\{#1\right\}}}
+\newcommand{\set}[1]{{\left\{#1\right\}}}
+\newcommand{\lcm}[0]{\operatorname{lcm}}
+\newcommand{\defeq}[0]{\overset{\mathrm{def}}{=}}
+
+\allowdisplaybreaks[4]
+
+\def\grabtimezone #1#2#3#4#5#6#7#8#9{\grabtimezoneB}
+\def\grabtimezoneB #1#2#3#4#5#6#7{\grabtimezoneC}
+\def\grabtimezoneC #1#2'#3'{$#1$#2:#3}
+\newcommand{\timezone}[0]{UTC\expandafter \grabtimezone\pdfcreationdate}
+\newcommand{\currentdate}{\the\year--\twodigit{\the\month}--\twodigit{\the\day}}
+\newcommand{\currentdatetime}{\currentdate\ / \currenttime}%\ \timezone}
+
+\title{Computation of the Totient Summatory Function}
+\author{Lucas A. Brown}
+\date{\currentdatetime}
+
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{} \chead{Computation of the Totient Summatory Function} \rhead{}
+\lfoot{\currentdatetime} \cfoot{} \rfoot{Page \thepage\ of \pageref{LastPage}}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+
+\begingroup
+    \makeatletter
+    \@for\theoremstyle:=definition,remark,plain\do{%
+        \expandafter\g@addto@macro\csname th@\theoremstyle\endcsname{%
+            \addtolength\thm@preskip\parskip
+            }%
+        }
+\endgroup
+\makeatletter
+\renewenvironment{proof}[1][\proofname]{\par
+  \vspace{-\topsep}% remove the space after the theorem
+  \pushQED{\qed}%
+  \normalfont
+  \topsep0pt \partopsep0pt % no space before
+  \trivlist
+  \item[\hskip\labelsep
+        \itshape
+    #1\@addpunct{.}]\ignorespaces
+}{%
+  \popQED\endtrivlist\@endpefalse
+  \addvspace{0pt} % some space after
+}
+\makeatother
+\makeatletter
+\newenvironment{solution}[1][\proofname]{\par
+  \vspace{-\topsep}% remove the space after the theorem
+  \pushQED{\qed}%
+  \normalfont
+  \topsep0pt \partopsep0pt % no space before
+  \trivlist
+  \item[\hskip\labelsep
+        \bfseries
+    Solution #1\@addpunct{.}]\ignorespaces
+}{%
+  \popQED\endtrivlist\@endpefalse
+  \addvspace{0pt} % some space after
+}
+\makeatother
+\usepackage{thmtools}
+\declaretheorem[style=plain]{theorem}
+\declaretheorem[sibling=theorem,style=plain]{corollary}
+\declaretheorem[sibling=theorem,style=plain]{lemma}
+\declaretheorem[sibling=theorem,style=plain]{proposition}
+\declaretheorem[sibling=theorem,style=plain]{conjecture}
+\declaretheorem[sibling=theorem,style=definition,qed=$\clubsuit$]{definition}
+\declaretheorem[sibling=theorem,style=definition,qed=$\clubsuit$]{observation}
+\declaretheorem[sibling=theorem,style=definition,qed=$\clubsuit$]{fact}
+\declaretheorem[sibling=theorem,style=definition,qed=$\spadesuit$]{example}
+\declaretheorem[sibling=theorem,style=definition]{notation}
+\declaretheorem[sibling=theorem,style=definition]{question}
+\declaretheorem[sibling=theorem,style=remark]{remark}
+\declaretheorem[style=definition]{problem}
+
+\renewcommand\qedsymbol{$\blacksquare$}
+
+\hypersetup{
+    pdftitle={On the Summation of the Totient Function},
+    pdfauthor={Lucas A. Brown},
+    pdfsubject={},
+    pdfkeywords={},
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue,
+    %hidelinks,
+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+
+\lstset{style=mystyle}
+
+\newcommand{\showcode}[1]{Filename: \texttt{#1.py} \lstinputlisting[language=Python]{code/#1.py}}
+
+\newcommand{\floordiv}[2]{\floor{\frac{#1}{#2}}}
+\newcommand{\isqrt}[1]{\floor{\sqrt{#1}}}
+
+\begin{document}
+\maketitle %\thispagestyle{fancy}
+
+\begin{abstract}
+Let $\Phi(N) = \phi(1) + \cdots + \phi(N)$ be the totient summatory function.  We devise an algorithm for computing $\Phi(N)$ in time $\widetilde{O}(N^{2/3})$ and space $\widetilde{O}(N^{1/3})$.
+\end{abstract}
+
+\section{Notation}
+
+Euler's totient function is denoted $\phi$.  Its summatory function is denoted $\Phi$.
+
+The Dirichlet convolution of $f$ and $g$ is denoted by $f*g$.
+
+The compositional identity function is denoted $I$.
+
+The M\"{o}bius function is $\mu$.
+
+The Mertens function is $M$.
+
+We use $\delta(n) = \floor{1/n}$.  Note that this is the identity function for Dirichlet convolution.
+
+\section{Existing algorithms}
+
+The sieve of Eratosthenes can be modified to compute $\phi(n)$ for all $1 \leq n \leq N$, and therefore $\Phi(N)$, in time $\widetilde{O}(N)$ and space $\widetilde{O}(N^{1/2})$.  Helfgott's sieve \cite{Helfgott2020} can be used to reduce the memory usage to $\widetilde{O}(N^{1/3})$ in exchange for a logarithmic time penalty.
+
+Hirsch, Kessler, and Mendlovic outline \cite[\S5.6]{HKM2024} a method to compute $\Phi(N)$ in $\widetilde{O}(N^{1/2})$ time and $\widetilde{O}(N^{1/2})$ space.  However, this has never been implemented, and the hidden constants are expected to make the algorithm non-competitive for practical values of $N$.  \todo the HKM prime-counting algorithm has space-time tradeoffs.  What tradeoffs are available for $\Phi$?
+
+By applying the Dirichlet hyperbola method to the convolution $\phi = \mu * I$, and letting $ab=N$, we obtain the formula
+\eqn{\Phi(N) = \sum_{x=1}^{a}\sum_{y=1}^{N/x} \mu(x) \, I(y) + \sum_{y=1}^{b}\sum_{x=1}^{N/y} \mu(x) \, I(y) - \sum_{x=1}^{a}\sum_{y=1}^{b} \mu(x) \, I(y)}
+\eqn{ = \sum_{x=1}^{a}\sum_{y=1}^{N/x} y \cdot \mu(x) + \sum_{y=1}^{b}\sum_{x=1}^{N/y} y \cdot \mu(x) - \sum_{x=1}^{a}\sum_{y=1}^{b} y \cdot \mu(x)}
+\neqn{\Phi(N) = \sum_{x=1}^{a} \mu(x) \cdot \floordiv{N}{x} + \sum_{y=1}^{b} y \cdot M(N/y) - \frac{b \cdot (b+1)}{2} \cdot M(a) \label{aknbfe}}
+Suppose that we have an algorithm that can compute $M(x)$ in time $\widetilde{O}(x^c)$, and observe that sieving tells us that $c\leq1$ is available.  Using a sieve to compute the necessary M\"obius values, but otherwise evaluating this formula na\"{i}vely, takes time
+\eqn{\widetilde{O}\left( a + \sum_{x=1}^b \left(\frac{N}{x}\right)^c + a^c \right)}
+\eqn{=\widetilde{O}\left( a + N^c \integral{x^{-c}}{x}{1}{b} + a^c \right)}
+\eqn{=\widetilde{O}\left( a + N^c\frac{b^{1-c}}{1-c} - N^c\frac{1^{1-c}}{1-c} + a^c \right)}
+\eqn{=\widetilde{O}\left( a + N^c b^{1-c} - N^c + a^c \right)}
+\eqn{=\widetilde{O}\left( a + N^c N^{1-c} a^{c-1} - N^c + a^c \right)}
+\eqn{=\widetilde{O}\left( a + N a^{c-1} - N^c + a^c \right)}
+The third term is always dominated by the second, and the fourth is always dominated by the first.
+\eqn{=\widetilde{O}\left( a + N a^{c-1} \right)}
+To balance the contributions of the two terms, we take $a = \widetilde{O}(N^{1/(2-c)})$.
+
+The Del\'{e}glise-Rivat algorithm \cite{DR1996} allows $c=2/3$, and so using it in this algorithm sets $a=3/4$.  The time complexity is then $\widetilde{O}(N^{3/4})$. 
+ The Del\'{e}glise-Rivat algorithm is invoked for arguments up to $N$, so its contribution to the memory usage is $\widetilde{O}(N^{1/3})$.  If the M\"{o}bius sieving is done with Helfgott's algorithm \cite{Helfgott2020}, then the sieving consumes $\widetilde{O}(N^{1/4})$ space; if the traditional square-root segmentation is used then the sieving consumes $\widetilde{O}(N^{3/8})$ space.
+
+The Mertens function can also be computed with the Helfgott-Thompson algorithm, which takes $\widetilde{O}(N^{3/5})$ time and $\widetilde{O}(N^{3/10})$ space.  Evaluating (\ref{aknbfe}) as described then takes $\widetilde{O}(N^{5/7})$ time, and we have $a = \widetilde{O}(N^{5/7})$.  The space usage is then $\widetilde{O}(N^{3/10})$ inside the Helfgott-Thompson algorithm and either $\widetilde{O}(N^{5/14})$ or $\widetilde{O}(N^{5/21})$, depending on which sieving method is used.
+
+This algorithm suffers from the fact that all those $M(N/y)$-values are computed one at a time and are not given a chance to contribute to each other.  This can be ameliorated by another application of the Dirichlet hyperbola method.  This time, we use $\delta = \mu * 1$ and set $\alpha\beta=N$ to obtain
+\eqn{\sum_{n=1}^N \delta(n) = \sum_{x=1}^{\alpha}\sum_{y=1}^{N/x} \mu(x) \cdot 1 + \sum_{y=1}^{\beta}\sum_{x=1}^{N/y} \mu(x) \cdot 1 - \sum_{x=1}^{\alpha}\sum_{y=1}^{\beta} \mu(x) \cdot 1}
+\eqn{1 = \sum_{x=1}^{\alpha} \mu(x) \floordiv{N}{x} + \sum_{y=1}^{\beta} M(N/y) - M(\alpha) \floor{\beta}}
+\neqn{M(N) = 1 + \floor{\beta} M(\alpha) - \sum_{x=1}^{\alpha} \mu(x) \floordiv{N}{x} - \sum_{y=2}^{\beta} M(N/y) \label{betneqtn}}
+When evaluating (\ref{aknbfe}), we need to find $M(N/k)$ for $1 \leq k \leq b$, $M(a)$, and $\mu(k)$ for $1 \leq k \leq a$.
+
+When evaluating (\ref{betneqtn}), we need to find $M(N/k)$ for $2 \leq k \leq \beta$, $M(\alpha)$, and $\mu(k)$ for $1 \leq k \leq \alpha$.
+
+Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=b$), sieve $\mu$ up to $a$, accumulate the values along the way to compute $M$ up to $a$, use (\ref{betneqtn}) to compute the remaining Mertens values, and then feed all that data into (\ref{aknbfe}) to compute $\Phi(N)$.
+
+
+\section{Python code}
+
+%\showcode{totientsumA}
+
+Filename: \texttt{utils.py}
+\lstinputlisting[language=Python, caption={Utiliity functions---a prime-number generator, a M\"{o}bius siever, and the Mertens function using the Del\'{e}glise--Rivat algorithm.}]{code/utils.py}
+
+Filename: \texttt{totientsumA.py}
+\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by sieving $\phi$ from 1 to $N$.}]{code/totientsumA.py}
+
+Filename: \texttt{totientsumB.py}
+\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by na\"{i}vely evaluating (\ref{aknbfe}).}]{code/totientsumB.py}
+
+
+
+\nocite{*}
+
+OEIS: 002088
+
+\setlength{\bibitemsep}{\parskip}
+\printbibliography[heading=bibnumbered]
+
+\end{document}
+
+
+
+
