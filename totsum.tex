@@ -297,7 +297,7 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
                 $m \gets m - M^\prime_{\floor{n/\floor{v/k}}}$
             }
         }
-        $M^\prime_y \gets M^\prime + m$
+        $M^\prime_y \gets M^\prime_y + m$
         
         $Y \gets Y + y \cdot M^\prime_y$ \label{1-p3end}
     }
@@ -425,7 +425,7 @@ Applying this edit to Algorithm \ref{Algo1} replaces line A\ref{Algo1}.\ref{1-p1
                 $m \gets m - M^\prime_{\floor{n/\floor{v/k}}}$
             }
         }
-        $M^\prime_y \gets M^\prime + m$
+        $M^\prime_y \gets M^\prime_y + m$
         
         $Y \gets Y + y \cdot M^\prime_y$
     }
@@ -434,7 +434,22 @@ Applying this edit to Algorithm \ref{Algo1} replaces line A\ref{Algo1}.\ref{1-p1
 }
 \end{algorithm}
 
-The next step is to move line A\ref{Algo4}.\ref{4-27} into phase 1.
+The next step is to move line A\ref{Algo4}.\ref{4-27} into phase 1.  The work this line does is essentially
+
+\begin{algorithm}[H] \label{Algo4extract}
+\DontPrintSemicolon
+\caption{An extract from Algorithm \ref{Algo4}}
+\Begin{
+    \For{$y=b$ \KwTo $1$}{
+        $M^\prime_y \gets M^\prime_y + 1 - \floor{n/y} + \isqrt{n/y} \cdot M_{\isqrt{n/y}}$
+    }
+}
+\end{algorithm}
+
+Let $k=\isqrt{n/y}$.  Then $k$ is the unique integer such that
+\eqn{k \leq \sqrt{n/y} < k+1}
+\eqn{k^2 \leq \frac{n}{y} < (k+1)^2}
+\eqn{\frac{n}{(k+1)^2} < y \leq \frac{n}{k^2}}
 
 
 
@@ -448,6 +463,36 @@ The next step is to move line A\ref{Algo4}.\ref{4-27} into phase 1.
 
 
 
+
+\section{Python code}
+
+%\showcode{totientsumA}
+
+Filename: \texttt{utils.py}
+%\lstinputlisting[language=Python, caption={Utiliity functions---a prime-number generator, a $\floor{\isqrt[n]{x}}$-computer, a M\"{o}bius siever, and the Mertens function using the Del\'{e}glise--Rivat algorithm.}]{code/utils.py}
+
+Filename: \texttt{totientsumA.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by sieving $\phi$ from 1 to $N$.}]{code/totientsumA.py}
+
+Filename: \texttt{totientsumB.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by na\"{i}vely evaluating (\ref{PhiFormula}).}]{code/totientsumB.py}
+
+Filename: \texttt{totientsumC.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo1}.}]{code/totientsumC.py}
+
+Filename: \texttt{totientsumD.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo4}.}]{code/totientsumD.py}
+
+
+
+\nocite{*}
+
+OEIS: 002088
+
+\setlength{\bibitemsep}{\parskip}
+\printbibliography[heading=bibnumbered]
+
+\end{document}
 
 
 
@@ -486,37 +531,4 @@ The next step is to move line A\ref{Algo4}.\ref{4-27} into phase 1.
 \end{algorithm}
 
 A\ref{Algq35yt6q35y}.\ref{AlgorithmLineExample}
-
-\section{Python code}
-
-%\showcode{totientsumA}
-
-Filename: \texttt{utils.py}
-%\lstinputlisting[language=Python, caption={Utiliity functions---a prime-number generator, a M\"{o}bius siever, and the Mertens function using the Del\'{e}glise--Rivat algorithm.}]{code/utils.py}
-
-Filename: \texttt{totientsumA.py}
-%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by sieving $\phi$ from 1 to $N$.}]{code/totientsumA.py}
-
-Filename: \texttt{totientsumB.py}
-%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by na\"{i}vely evaluating (\ref{PhiFormula}).}]{code/totientsumB.py}
-
-Filename: \texttt{totientsumC.py}
-%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo1}.}]{code/totientsumC.py}
-
-Filename: \texttt{totientsumD.py}
-%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo4}.}]{code/totientsumD.py}
-
-
-
-\nocite{*}
-
-OEIS: 002088
-
-\setlength{\bibitemsep}{\parskip}
-\printbibliography[heading=bibnumbered]
-
-\end{document}
-
-
-
 
