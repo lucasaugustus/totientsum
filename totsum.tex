@@ -20,6 +20,7 @@
 \usepackage{enumitem}
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage[linesnumbered,vlined,boxed]{algorithm2e}
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
 \newcommand{\eqn}[1]{\begin{displaymath} #1 \end{displaymath}}
 \newcommand{\neqn}[1]{\begin{equation} #1 \end{equation}}
@@ -67,6 +68,7 @@
 \lfoot{\currentdatetime} \cfoot{} \rfoot{Page \thepage\ of \pageref{LastPage}}
 \renewcommand{\headrulewidth}{1pt}
 \renewcommand{\footrulewidth}{1pt}
+\setlength{\headheight}{15pt}
 
 \begingroup
     \makeatletter
@@ -164,13 +166,19 @@
 \newcommand{\showcode}[1]{Filename: \texttt{#1.py} \lstinputlisting[language=Python]{code/#1.py}}
 
 \newcommand{\floordiv}[2]{\floor{\frac{#1}{#2}}}
+\newcommand{\dfloordiv}[2]{\floor{\dfrac{#1}{#2}}}
 \newcommand{\isqrt}[1]{\floor{\sqrt{#1}}}
+\newcommand{\softO}[0]{\widetilde{O}}
+\newcommand{\softTheta}[0]{\widetilde{\Theta}}
+
+\RestyleAlgo{ruled}
+\SetKwComment{Comment}{/* }{ */}
 
 \begin{document}
 \maketitle %\thispagestyle{fancy}
 
 \begin{abstract}
-Let $\Phi(N) = \phi(1) + \cdots + \phi(N)$ be the totient summatory function.  We devise an algorithm for computing $\Phi(N)$ in time $\widetilde{O}(N^{2/3})$ and space $\widetilde{O}(N^{1/3})$.
+Let $\Phi(n) = \phi(1) + \cdots + \phi(n)$ be the totient summatory function.  We devise an algorithm for computing $\Phi(n)$ in time $\widetilde{O}(n^{2/3})$ and space $\widetilde{O}(n^{1/3})$.
 \end{abstract}
 
 \section{Notation}
@@ -181,61 +189,322 @@ The Dirichlet convolution of $f$ and $g$ is denoted by $f*g$.
 
 The compositional identity function is denoted $I$.
 
-The M\"{o}bius function is $\mu$.
+The letter $\mu$ is used for both the M\"{o}bius function and an array such that $\mu_k = \mu(k)$.
 
-The Mertens function is $M$.
+The letter $M$ is used for both the Mertens function and an array such that $M_k = M(k)$.
 
 We use $\delta(n) = \floor{1/n}$.  Note that this is the identity function for Dirichlet convolution.
 
 \section{Existing algorithms}
 
-The sieve of Eratosthenes can be modified to compute $\phi(n)$ for all $1 \leq n \leq N$, and therefore $\Phi(N)$, in time $\widetilde{O}(N)$ and space $\widetilde{O}(N^{1/2})$.  Helfgott's sieve \cite{Helfgott2020} can be used to reduce the memory usage to $\widetilde{O}(N^{1/3})$ in exchange for a logarithmic time penalty.
+The sieve of Eratosthenes can be modified to compute $\phi(n)$ for all $1 \leq n \leq n$, and therefore $\Phi(n)$, in time $\widetilde{O}(n)$ and space $\widetilde{O}(n^{1/2})$.  Helfgott's sieve \cite{Helfgott2020} can be used to reduce the memory usage to $\widetilde{O}(n^{1/3})$ in exchange for a logarithmic time penalty.
 
-Hirsch, Kessler, and Mendlovic outline \cite[\S5.6]{HKM2024} a method to compute $\Phi(N)$ in $\widetilde{O}(N^{1/2})$ time and $\widetilde{O}(N^{1/2})$ space.  However, this has never been implemented, and the hidden constants are expected to make the algorithm non-competitive for practical values of $N$.  \todo the HKM prime-counting algorithm has space-time tradeoffs.  What tradeoffs are available for $\Phi$?
+Hirsch, Kessler, and Mendlovic outline \cite[\S5.6]{HKM2024} a method to compute $\Phi(n)$ in $\widetilde{O}(n^{1/2})$ time and $\widetilde{O}(n^{1/2})$ space.  However, this has never been implemented, and the hidden constants are expected to make the algorithm non-competitive for practical values of $n$.  \todo the HKM prime-counting algorithm has space-time tradeoffs.  What tradeoffs are available for $\Phi$?
 
-By applying the Dirichlet hyperbola method to the convolution $\phi = \mu * I$, and letting $ab=N$, we obtain the formula
-\eqn{\Phi(N) = \sum_{x=1}^{a}\sum_{y=1}^{N/x} \mu(x) \, I(y) + \sum_{y=1}^{b}\sum_{x=1}^{N/y} \mu(x) \, I(y) - \sum_{x=1}^{a}\sum_{y=1}^{b} \mu(x) \, I(y)}
-\eqn{ = \sum_{x=1}^{a}\sum_{y=1}^{N/x} y \cdot \mu(x) + \sum_{y=1}^{b}\sum_{x=1}^{N/y} y \cdot \mu(x) - \sum_{x=1}^{a}\sum_{y=1}^{b} y \cdot \mu(x)}
-\neqn{\Phi(N) = \sum_{x=1}^{a} \mu(x) \cdot \floordiv{N}{x} + \sum_{y=1}^{b} y \cdot M(N/y) - \frac{b \cdot (b+1)}{2} \cdot M(a) \label{aknbfe}}
+By applying the Dirichlet hyperbola method to the convolution $\phi = \mu * I$, and letting $ab=n$, we obtain the formula
+\eqn{\Phi(n) = \sum_{x=1}^{a}\sum_{y=1}^{n/x} \mu(x) \, I(y) + \sum_{y=1}^{b}\sum_{x=1}^{n/y} \mu(x) \, I(y) - \sum_{x=1}^{a}\sum_{y=1}^{b} \mu(x) \, I(y)}
+\eqn{ = \sum_{x=1}^{a}\sum_{y=1}^{n/x} y \cdot \mu(x) + \sum_{y=1}^{b}\sum_{x=1}^{n/y} y \cdot \mu(x) - \sum_{x=1}^{a}\sum_{y=1}^{b} y \cdot \mu(x)}
+\neqn{\Phi(n) = \underbrace{\sum_{x=1}^{a} \mu(x) \cdot \frac{\floordiv{n}{x} \cdot \left(\floordiv{n}{x} + 1\right)}{2}}_{X} + \underbrace{\sum_{y=1}^{b} y \cdot M(n/y)}_{Y} - \underbrace{\frac{b \cdot (b+1)}{2} \cdot M(a)}_{Z} \label{PhiFormula}}
+The labels $X$, $Y$, and $Z$ will be used later.
+
 Suppose that we have an algorithm that can compute $M(x)$ in time $\widetilde{O}(x^c)$, and observe that sieving tells us that $c\leq1$ is available.  Using a sieve to compute the necessary M\"obius values, but otherwise evaluating this formula na\"{i}vely, takes time
-\eqn{\widetilde{O}\left( a + \sum_{x=1}^b \left(\frac{N}{x}\right)^c + a^c \right)}
-\eqn{=\widetilde{O}\left( a + N^c \integral{x^{-c}}{x}{1}{b} + a^c \right)}
-\eqn{=\widetilde{O}\left( a + N^c\frac{b^{1-c}}{1-c} - N^c\frac{1^{1-c}}{1-c} + a^c \right)}
-\eqn{=\widetilde{O}\left( a + N^c b^{1-c} - N^c + a^c \right)}
-\eqn{=\widetilde{O}\left( a + N^c N^{1-c} a^{c-1} - N^c + a^c \right)}
-\eqn{=\widetilde{O}\left( a + N a^{c-1} - N^c + a^c \right)}
+\eqn{\widetilde{O}\left( a + \sum_{x=1}^b \left(\frac{n}{x}\right)^c + a^c \right)}
+\eqn{=\widetilde{O}\left( a + n^c \integral{x^{-c}}{x}{1}{b} + a^c \right)}
+\eqn{=\widetilde{O}\left( a + n^c\frac{b^{1-c}}{1-c} - n^c\frac{1^{1-c}}{1-c} + a^c \right)}
+\eqn{=\widetilde{O}\left( a + n^c b^{1-c} - n^c + a^c \right)}
+\eqn{=\widetilde{O}\left( a + n^c n^{1-c} a^{c-1} - n^c + a^c \right)}
+\eqn{=\widetilde{O}\left( a + n a^{c-1} - n^c + a^c \right)}
 The third term is always dominated by the second, and the fourth is always dominated by the first.
-\eqn{=\widetilde{O}\left( a + N a^{c-1} \right)}
-To balance the contributions of the two terms, we take $a = \widetilde{O}(N^{1/(2-c)})$.
+\eqn{=\widetilde{O}\left( a + n a^{c-1} \right)}
+To balance the contributions of the two terms, we take $a = \widetilde{O}(n^{1/(2-c)})$.
 
-The Del\'{e}glise-Rivat algorithm \cite{DR1996} allows $c=2/3$, and so using it in this algorithm sets $a=3/4$.  The time complexity is then $\widetilde{O}(N^{3/4})$. 
- The Del\'{e}glise-Rivat algorithm is invoked for arguments up to $N$, so its contribution to the memory usage is $\widetilde{O}(N^{1/3})$.  If the M\"{o}bius sieving is done with Helfgott's algorithm \cite{Helfgott2020}, then the sieving consumes $\widetilde{O}(N^{1/4})$ space; if the traditional square-root segmentation is used then the sieving consumes $\widetilde{O}(N^{3/8})$ space.
+The Del\'{e}glise-Rivat algorithm \cite{DR1996} allows $c=2/3$, and so using it in this algorithm sets $a=3/4$.  The time complexity is then $\widetilde{O}(n^{3/4})$. 
+ The Del\'{e}glise-Rivat algorithm is invoked for arguments up to $n$, so its contribution to the memory usage is $\widetilde{O}(n^{1/3})$.  If the M\"{o}bius sieving is done with Helfgott's algorithm \cite{Helfgott2020}, then the sieving consumes $\widetilde{O}(n^{1/4})$ space; if the traditional square-root segmentation is used then the sieving consumes $\widetilde{O}(n^{3/8})$ space.
 
-The Mertens function can also be computed with the Helfgott-Thompson algorithm, which takes $\widetilde{O}(N^{3/5})$ time and $\widetilde{O}(N^{3/10})$ space.  Evaluating (\ref{aknbfe}) as described then takes $\widetilde{O}(N^{5/7})$ time, and we have $a = \widetilde{O}(N^{5/7})$.  The space usage is then $\widetilde{O}(N^{3/10})$ inside the Helfgott-Thompson algorithm and either $\widetilde{O}(N^{5/14})$ or $\widetilde{O}(N^{5/21})$, depending on which sieving method is used.
+The Mertens function can also be computed with the Helfgott-Thompson algorithm, which takes $\widetilde{O}(n^{3/5})$ time and $\widetilde{O}(n^{3/10})$ space.  Evaluating (\ref{PhiFormula}) as described then takes $\widetilde{O}(n^{5/7})$ time, and we have $a = \widetilde{O}(n^{5/7})$.  The space usage is then $\widetilde{O}(n^{3/10})$ inside the Helfgott-Thompson algorithm and either $\widetilde{O}(n^{5/14})$ or $\widetilde{O}(n^{5/21})$, depending on which sieving method is used.
 
-This algorithm suffers from the fact that all those $M(N/y)$-values are computed one at a time and are not given a chance to contribute to each other.  This can be ameliorated by another application of the Dirichlet hyperbola method.  This time, we use $\delta = \mu * 1$ and set $\alpha\beta=N$ to obtain
-\eqn{\sum_{n=1}^N \delta(n) = \sum_{x=1}^{\alpha}\sum_{y=1}^{N/x} \mu(x) \cdot 1 + \sum_{y=1}^{\beta}\sum_{x=1}^{N/y} \mu(x) \cdot 1 - \sum_{x=1}^{\alpha}\sum_{y=1}^{\beta} \mu(x) \cdot 1}
-\eqn{1 = \sum_{x=1}^{\alpha} \mu(x) \floordiv{N}{x} + \sum_{y=1}^{\beta} M(N/y) - M(\alpha) \floor{\beta}}
-\neqn{M(N) = 1 + \floor{\beta} M(\alpha) - \sum_{x=1}^{\alpha} \mu(x) \floordiv{N}{x} - \sum_{y=2}^{\beta} M(N/y) \label{betneqtn}}
-When evaluating (\ref{aknbfe}), we need to find $M(N/k)$ for $1 \leq k \leq b$, $M(a)$, and $\mu(k)$ for $1 \leq k \leq a$.
+This algorithm suffers from the fact that all those $M(n/y)$-values are computed one at a time and are not given a chance to contribute to each other.  This can be ameliorated by another application of the Dirichlet hyperbola method.  This time, we use $\delta = \mu * 1$ and set $\alpha\beta=n$ to obtain
+\eqn{\sum_{k=1}^n \delta(k) = \sum_{x=1}^{\alpha}\sum_{y=1}^{n/x} \mu(x) \cdot 1 + \sum_{y=1}^{\beta}\sum_{x=1}^{n/y} \mu(x) \cdot 1 - \sum_{x=1}^{\alpha}\sum_{y=1}^{\beta} \mu(x) \cdot 1}
+\eqn{1 = \sum_{x=1}^{\alpha} \mu(x) \floordiv{n}{x} + \sum_{y=1}^{\beta} M(n/y) - M(\alpha) \floor{\beta}}
+\neqn{M(n) = 1 + \floor{\beta} M(\alpha) - \sum_{x=1}^{\alpha} \mu(x) \floordiv{n}{x} - \sum_{y=2}^{\beta} M(n/y) \label{MertensRecursion}}
+When evaluating (\ref{PhiFormula}), we need to find $\mu(k)$ for $1 \leq k \leq a$, $M(a)$, and $M(n/k)$ for $1 \leq k \leq b$.
 
-When evaluating (\ref{betneqtn}), we need to find $M(N/k)$ for $2 \leq k \leq \beta$, $M(\alpha)$, and $\mu(k)$ for $1 \leq k \leq \alpha$.
+When evaluating (\ref{MertensRecursion}), we need to find $\mu(k)$ for $1 \leq k \leq \alpha$, $M(\alpha)$, and $M(n/k)$ for $2 \leq k \leq \beta$.
 
-Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=b$), sieve $\mu$ up to $a$, accumulate the values along the way to compute $M$ up to $a$, use (\ref{betneqtn}) to compute the remaining Mertens values, and then feed all that data into (\ref{aknbfe}) to compute $\Phi(N)$.
+Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=b$), sieve $\mu$ up to $a$, accumulate the values along the way to compute $M$ up to $a$, use (\ref{MertensRecursion}) to compute the remaining Mertens values, and then feed all that data into (\ref{PhiFormula}) to compute $\Phi(n)$.  This results in Algorithm \ref{Algo1}.
 
+\begin{algorithm}[H] \label{Algo1}
+\DontPrintSemicolon
+\caption{Compute $\Phi(n)$ in $\widetilde{\Theta}(n^{2/3})$ time and $\widetilde{\Theta}(n^{1/2})$ space \cite{griff2023}}
+\KwData{$n \geq 1$}
+\KwResult{$\Phi(n)$}
+\Begin{
+    $a \gets \widetilde{\Theta}(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$ \label{1-p1start}
+    
+    \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
+        $s \gets s-1$
+    }
+    
+    $\kappa \gets \floor{n/s}$
+    
+    Prepare a segmented Sieve of Eratosthenes to compute $\mu(k)$ for $1 \leq k \leq a$.
+    
+    Let $\mu$ and $M$ be arrays indexed from $1$ through $\isqrt{n}$, inclusive.
+    
+    Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros.
+    
+    \For{$k=1$ \KwTo $a$}{ \label{1-p12loopstart}
+        $v \gets \floor{n/k}$
+        
+        $m \gets m + \mu(k)$
+        
+        $X \gets X + \mu(k) \cdot \dfrac{v \cdot (v+1)}{2}$
+        
+        \uIf{$k \leq \isqrt{n}$}{ \label{1-p1a}
+            $M_k = m$
+            
+            $\mu_k = \mu(k)$ \label{1-p1b}
+        }
+        \ElseIf{$k = \kappa$}{ \label{1-p2a}
+        
+            \If{$v \neq b$}{ \label{1-17}
+                $M^\prime_{v} = m$ \label{1-18}
+            }
+            
+            $s \gets s-1$
+            
+            $\kappa \gets \floor{n/s}$
+        }
+        \If{$k = a$}{
+            $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$ \label{1-p2b}
+        }
+    }
+    
+    \label{1-p1end}
+    
+    \For{$y=b$ \KwTo $1$}{ \label{1-p3start}
+        $v \gets \floor{n/y}$
+        
+        $m = 1 - v + \isqrt{v} \cdot M_{\isqrt{v}}$
+        
+        \For{$k=2$ \KwTo $\isqrt{v}$}{
+            $m \gets m - \mu_k \cdot \floor{v/k}$ \label{1-p3mobius}
+            
+            \uIf{$\floor{v/k} \leq \isqrt{n}$}{
+                $m \gets m - M_{\floor{v/k}}$
+            }
+            \Else{
+                $m \gets m - M^\prime_{\floor{n/\floor{v/k}}}$
+            }
+        }
+        $M^\prime_y \gets M^\prime + m$
+        
+        $Y \gets Y + y \cdot M^\prime_y$ \label{1-p3end}
+    }
+    
+    \KwRet $X + Y - Z$
+}
+\end{algorithm}
+
+Algorithm \ref{Algo1} has three phases:
+\begin{enumerate}
+\item The first phase is the sieving up to $\isqrt{n}$.  This is covered in line \ref{1-p1b} and before.  In this phase, we sieve the M\"{o}bius function up to $\isqrt{n}$, accumulate its values to compute the Mertens function, save both $\mu$ and $M$, and accumulate terms from part $X$ of (\ref{PhiFormula}).
+\item The second phase continues the sieve up to $a$.  This is covered in lines \ref{1-p12loopstart}--\ref{1-p2b}, with lines \ref{1-p1a}--\ref{1-p1b} omitted.  In this phase, we continue to accumulate M\"{o}bius values to compute Mertens values, and we continue to accumulate terms from part $X$ of (\ref{PhiFormula}), but we do not save any $\mu$, and only some Mertens values are saved.  As the final act of phase 2, we compute part $Z$ of (\ref{PhiFormula}).  At this point, $X$ and $Z$ are fully evaluated, and nothing has been done about $Y$.
+\item In the third phase, lines \ref{1-p3start} through \ref{1-p3end} feed the stored M\"{o}bius and Mertens values into (\ref{MertensRecursion}) to compute the remaining Mertens values in order of increasing argument---that is, we first compute $M(n/b)$, then $M(n/(b-1))$, then ..., and finally $M(n)$.  As each Mertens value is computed, a term from part $Y$ of (\ref{PhiFormula}) becomes available, and we evaluate it accordingly.
+\end{enumerate}
+Once the third phase is done, $\Phi(n)$ is computed as $X+Y-Z$.
+
+Line \ref{1-18} is gatekept by line \ref{1-17}.  This is needed to mitigate an overlap in the phases that occurs for some $(a,n)$ pairs.  In such cases, without the gatekeeping, line \ref{1-18} would set $M^\prime_b$ to $M(a)$, which should be its final value, but it then gets modifed in the first iteration through phase 3, which throws things off.  With line \ref{1-17} in place, $M^\prime_b$ is not touched until phase 3.
+
+Algorithm \ref{Algo1} takes $\softTheta(n^{2/3})$ time: phases 1 and 2 combined clearly take $\softTheta(a)$ time, and phase 3 takes time
+\eqn{\softTheta \left( \sum_{y=1}^b \left( \isqrt{\frac{n}{y}} - 1 \right) \right)}
+\eqn{= \softTheta \left( \sum_{y=1}^b \left( \isqrt{\frac{n}{y}} \right) - b \right)}
+\eqn{= \softTheta \left( \integral{ \sqrt{\frac{n}{y}} }{y}{1}{b} - b \right)}
+\eqn{= \softTheta \left( \sqrt{n} 2 \eval{\sqrt{y}}{y=1}{b} - b \right)}
+\eqn{= \softTheta \left( 2 \sqrt{n} \eval{\sqrt{y}}{y=1}{b} - b \right)}
+\eqn{= \softTheta \left( 2 \sqrt{n} \left( \sqrt{b} - 1 \right) - b \right)}
+\eqn{= \softTheta \left( \frac{n}{\sqrt{a}} \right).}
+
+Algorithm 1 takes $\softTheta(\sqrt{n})$ space: we use three arrays of $\Theta(\sqrt{n})$ elements each to store the M\"{o}bius and Mertens values, the M\"{o}bius sieving consumes $\widetilde{O}(\sqrt{a})$ space, and everything else fits in $O(1)$ space.
+
+\section{A new algorithm}
+
+We now reduce Algorithm \ref{Algo1}'s memory usage from $\softTheta(\sqrt{n})$ to $\softTheta(\sqrt[3]{n})$.  The first step is to observe that we can move line \ref{1-p3mobius} into phase 1.  The work done in that line is essentially as follows:
+
+\begin{algorithm}[H] \label{Algo1mu}
+\DontPrintSemicolon
+\caption{An extract from Algorithm \ref{Algo1}}
+\Begin{
+    \For{$y=b$ \KwTo $1$}{
+        \For{$k=2$ \KwTo $\isqrt{n/y}$}{
+            $M^\prime_y \gets M^\prime_y - \mu_k \cdot \dfloordiv{n}{yk}$
+        }
+    }
+}
+\end{algorithm}
+
+If we can swap the order of the loops, then we will be able to integrate this line into phase 1 and not have to store the M\"{o}bius array.
+
+This extract iterates over all pairs $(y,k)$ such that $1 \leq y \leq b$ and $2 \leq k \leq \sqrt{n/y}$.  The range accessed by $k$ is therefore $2 \leq k \leq \sqrt{n}$, and for each $k$, $y$ ranges over $1 \leq y \leq \min(b, n/k^2)$.  This extract is therefore equivalent to
+
+\begin{algorithm}[H] \label{Algo1mu_redone}
+\DontPrintSemicolon
+\caption{Algorithm \ref{Algo1mu}, reordered}
+\Begin{
+    \For{$k=2$ \KwTo $\isqrt{n}$}{
+        \For{$y=1$ \KwTo $\floor{\min(b,n/k^2)}$}{
+            $M^\prime_y \gets M^\prime_y - \mu_k \cdot \dfloordiv{n}{yk}$
+        }
+    }
+}
+\end{algorithm}
+
+Applying this edit to Algorithm \ref{Algo1} replaces line A\ref{Algo1}.\ref{1-p1b} with lines A\ref{Algo4}.\ref{4-15}--\ref{4-17}, and removes line A\ref{Algo1}.\ref{1-p3mobius} entirely.  The result is Algorithm \ref{Algo4}.
+
+\begin{algorithm}[H] \label{Algo4}
+\DontPrintSemicolon
+\caption{Compute $\Phi(n)$ in $\widetilde{\Theta}(n^{2/3})$ time and $\widetilde{\Theta}(n^{1/2})$ space \cite{griff2023}}
+\KwData{$n \geq 1$}
+\KwResult{$\Phi(n)$}
+\Begin{
+    $a \gets \widetilde{\Theta}(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$
+    
+    \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
+        $s \gets s-1$
+    }
+    
+    $\kappa \gets \floor{n/s}$
+    
+    Prepare a segmented Sieve of Eratosthenes to compute $\mu(k)$ for $1 \leq k \leq a$.
+    
+    Let $M$ be an array indexed from $1$ through $\isqrt{n}$, inclusive.
+    
+    Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros.
+    
+    \For{$k=1$ \KwTo $a$}{
+        $v \gets \floor{n/k}$
+        
+        $m \gets m + \mu(k)$
+        
+        $X \gets X + \mu(k) \cdot \dfrac{v \cdot (v+1)}{2}$
+        
+        \uIf{$k \leq \isqrt{n}$}{
+            $M_k = m$
+            
+            \If{$k > 1$}{ \label{4-15}
+                \For{$y=1$ \KwTo $\floor{\min(b,n/k^2)}$}{
+                    $M^\prime_y \gets M^\prime_y - \mu_k \cdot \dfloordiv{n}{yk}$ \label{4-17}
+                }
+            }
+        }
+        \ElseIf{$k = \kappa$}{
+        
+            \If{$v \neq b$}{
+                $M^\prime_{v} = m$
+            }
+            
+            $s \gets s-1$
+            
+            $\kappa \gets \floor{n/s}$
+        }
+        \If{$k = a$}{
+            $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$
+        }
+    }
+    
+    \For{$y=b$ \KwTo $1$}{
+        $v \gets \floor{n/y}$
+        
+        $m = 1 - v + \isqrt{v} \cdot M_{\isqrt{v}}$ \label{4-27}
+        
+        \For{$k=2$ \KwTo $\isqrt{v}$}{
+            \uIf{$\floor{v/k} \leq \isqrt{n}$}{
+                $m \gets m - M_{\floor{v/k}}$
+            }
+            \Else{
+                $m \gets m - M^\prime_{\floor{n/\floor{v/k}}}$
+            }
+        }
+        $M^\prime_y \gets M^\prime + m$
+        
+        $Y \gets Y + y \cdot M^\prime_y$
+    }
+    
+    \KwRet $X + Y - Z$
+}
+\end{algorithm}
+
+The next step is to move line A\ref{Algo4}.\ref{4-27} into phase 1.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\begin{algorithm}
+\DontPrintSemicolon
+\caption{Caption} \label{Algq35yt6q35y}
+\KwData{$n \geq 0$}
+\KwResult{$y = x^n$}
+\Begin{
+  $y \gets 1$\;
+  $X \gets x$\;
+  $N \gets n$\;
+  \While{$N \neq 0$}{
+    \eIf{$N$ is even}{
+      $X \gets X \times X$\;
+      $N \gets \frac{N}{2} $ \Comment*[r]{This is a comment}
+    }{\If{$N$ is odd}{ \label{AlgorithmLineExample}
+        $y \gets y \times X$\;
+        $N \gets N - 1$\;
+      }
+    }
+    \For{$j \leftarrow 2$ \KwTo $w$}{
+      do stuff\;
+      \uIf{Test}{
+        do stuff
+      }
+      \uElseIf{test2}{
+        do stuff
+      }
+      \Else{
+        do stuff
+      }
+    }
+  }
+}
+\end{algorithm}
+
+A\ref{Algq35yt6q35y}.\ref{AlgorithmLineExample}
 
 \section{Python code}
 
 %\showcode{totientsumA}
 
 Filename: \texttt{utils.py}
-\lstinputlisting[language=Python, caption={Utiliity functions---a prime-number generator, a M\"{o}bius siever, and the Mertens function using the Del\'{e}glise--Rivat algorithm.}]{code/utils.py}
+%\lstinputlisting[language=Python, caption={Utiliity functions---a prime-number generator, a M\"{o}bius siever, and the Mertens function using the Del\'{e}glise--Rivat algorithm.}]{code/utils.py}
 
 Filename: \texttt{totientsumA.py}
-\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by sieving $\phi$ from 1 to $N$.}]{code/totientsumA.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by sieving $\phi$ from 1 to $N$.}]{code/totientsumA.py}
 
 Filename: \texttt{totientsumB.py}
-\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by na\"{i}vely evaluating (\ref{aknbfe}).}]{code/totientsumB.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by na\"{i}vely evaluating (\ref{PhiFormula}).}]{code/totientsumB.py}
+
+Filename: \texttt{totientsumC.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo1}.}]{code/totientsumC.py}
+
+Filename: \texttt{totientsumD.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo4}.}]{code/totientsumD.py}
 
 
 
