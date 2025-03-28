@@ -20,7 +20,7 @@
 \usepackage{enumitem}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage[linesnumbered,vlined,boxed]{algorithm2e}
+\usepackage[linesnumbered,vlined,boxed,ruled]{algorithm2e}
 \DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
 \newcommand{\eqn}[1]{\begin{displaymath} #1 \end{displaymath}}
 \newcommand{\neqn}[1]{\begin{equation} #1 \end{equation}}
@@ -171,7 +171,6 @@
 \newcommand{\softO}[0]{\widetilde{O}}
 \newcommand{\softTheta}[0]{\widetilde{\Theta}}
 
-\RestyleAlgo{ruled}
 \SetKwComment{Comment}{/* }{ */}
 
 \begin{document}
@@ -197,7 +196,7 @@ We use $\delta(n) = \floor{1/n}$.  Note that this is the identity function for D
 
 \section{Existing algorithms}
 
-The sieve of Eratosthenes can be modified to compute $\phi(n)$ for all $1 \leq n \leq n$, and therefore $\Phi(n)$, in time $\widetilde{O}(n)$ and space $\widetilde{O}(n^{1/2})$.  Helfgott's sieve \cite{Helfgott2020} can be used to reduce the memory usage to $\widetilde{O}(n^{1/3})$ in exchange for a logarithmic time penalty.
+The sieve of Eratosthenes can be modified to compute $\phi(n)$ for all $1 \leq n \leq n$, and therefore $\Phi(n)$, in time $\widetilde{O}(n)$ and space $\widetilde{O}(n^{1/2})$.\footnote{See file \texttt{totientsumA.py} for an implementation.}  Helfgott's sieve \cite{Helfgott2020} can be used to reduce the memory usage to $\widetilde{O}(n^{1/3})$ in exchange for a logarithmic time penalty.  (\todo implement that)
 
 Hirsch, Kessler, and Mendlovic outline \cite[\S5.6]{HKM2024} a method to compute $\Phi(n)$ in $\widetilde{O}(n^{1/2})$ time and $\widetilde{O}(n^{1/2})$ space.  However, this has never been implemented, and the hidden constants are expected to make the algorithm non-competitive for practical values of $n$.  \todo the HKM prime-counting algorithm has space-time tradeoffs.  What tradeoffs are available for $\Phi$?
 
@@ -219,7 +218,7 @@ The third term is always dominated by the second, and the fourth is always domin
 To balance the contributions of the two terms, we take $a = \widetilde{O}(n^{1/(2-c)})$.
 
 The Del\'{e}glise-Rivat algorithm \cite{DR1996} allows $c=2/3$, and so using it in this algorithm sets $a=3/4$.  The time complexity is then $\widetilde{O}(n^{3/4})$. 
- The Del\'{e}glise-Rivat algorithm is invoked for arguments up to $n$, so its contribution to the memory usage is $\widetilde{O}(n^{1/3})$.  If the M\"{o}bius sieving is done with Helfgott's algorithm \cite{Helfgott2020}, then the sieving consumes $\widetilde{O}(n^{1/4})$ space; if the traditional square-root segmentation is used then the sieving consumes $\widetilde{O}(n^{3/8})$ space.
+ The Del\'{e}glise-Rivat algorithm is invoked for arguments up to $n$, so its contribution to the memory usage is $\widetilde{O}(n^{1/3})$.  If the M\"{o}bius sieving is done with Helfgott's algorithm \cite{Helfgott2020}, then the sieving consumes $\widetilde{O}(n^{1/4})$ space; if the traditional square-root segmentation is used then the sieving consumes $\widetilde{O}(n^{3/8})$ space.\footnote{See file \texttt{totientsumB.py} for an implementation.}
 
 The Mertens function can also be computed with the Helfgott-Thompson algorithm, which takes $\widetilde{O}(n^{3/5})$ time and $\widetilde{O}(n^{3/10})$ space.  Evaluating (\ref{PhiFormula}) as described then takes $\widetilde{O}(n^{5/7})$ time, and we have $a = \widetilde{O}(n^{5/7})$.  The space usage is then $\widetilde{O}(n^{3/10})$ inside the Helfgott-Thompson algorithm and either $\widetilde{O}(n^{5/14})$ or $\widetilde{O}(n^{5/21})$, depending on which sieving method is used.
 
@@ -235,7 +234,7 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
 
 \begin{algorithm}[H] \label{Algo1}
 \DontPrintSemicolon
-\caption{Compute $\Phi(n)$ in $\widetilde{\Theta}(n^{2/3})$ time and $\widetilde{\Theta}(n^{1/2})$ space \cite{griff2023}}
+\caption{Compute $\Phi(n)$ in $\widetilde{\Theta}(n^{2/3})$ time and $\widetilde{\Theta}(n^{1/2})$ space \cite{griff2023}.  See file \texttt{totientsumC.py} for an implementation.}
 \KwData{$n \geq 1$}
 \KwResult{$\Phi(n)$}
 \Begin{
@@ -245,27 +244,27 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
         $s \gets s-1$
     }
     
-    $\kappa \gets \floor{n/s}$
+    $\chi \gets \floor{n/s}$
     
     Prepare a segmented Sieve of Eratosthenes to compute $\mu(k)$ for $1 \leq k \leq a$.
     
     Let $\mu$ and $M$ be arrays indexed from $1$ through $\isqrt{n}$, inclusive.
     
-    Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros.
+    Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros. \label{1-endinit}
     
-    \For{$k=1$ \KwTo $a$}{ \label{1-p12loopstart}
-        $v \gets \floor{n/k}$
+    \For{$x=1$ \KwTo $a$}{ \label{1-p12loopstart}
+        $v \gets \floor{n/x}$
         
-        $m \gets m + \mu(k)$
+        $m \gets m + \mu(x)$
         
-        $X \gets X + \mu(k) \cdot \dfrac{v \cdot (v+1)}{2}$
+        $X \gets X + \mu(x) \cdot \dfrac{v \cdot (v+1)}{2}$ \label{1-14}
         
-        \uIf{$k \leq \isqrt{n}$}{ \label{1-p1a}
-            $M_k = m$
+        \uIf{$x \leq \isqrt{n}$}{ \label{1-p1a}
+            $M_x = m$
             
-            $\mu_k = \mu(k)$ \label{1-p1b}
+            $\mu_x = \mu(x)$ \label{1-p1b}
         }
-        \ElseIf{$k = \kappa$}{ \label{1-p2a}
+        \ElseIf{$x = \chi$}{ \label{1-p2a}
         
             \If{$v \neq b$}{ \label{1-17}
                 $M^\prime_{v} = m$ \label{1-18}
@@ -273,9 +272,9 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
             
             $s \gets s-1$
             
-            $\kappa \gets \floor{n/s}$
+            $\chi \gets \floor{n/s}$
         }
-        \If{$k = a$}{
+        \If{$x = a$}{
             $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$ \label{1-p2b}
         }
     }
@@ -287,14 +286,14 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
         
         $m = 1 - v + \isqrt{v} \cdot M_{\isqrt{v}}$
         
-        \For{$k=2$ \KwTo $\isqrt{v}$}{
-            $m \gets m - \mu_k \cdot \floor{v/k}$ \label{1-p3mobius}
+        \For{$x=2$ \KwTo $\isqrt{v}$}{
+            $m \gets m - \mu_x \cdot \floor{v/x}$ \label{1-p3mobius}
             
-            \uIf{$\floor{v/k} \leq \isqrt{n}$}{
-                $m \gets m - M_{\floor{v/k}}$
+            \uIf{$\floor{v/x} \leq \isqrt{n}$}{
+                $m \gets m - M_{\floor{v/x}}$
             }
             \Else{
-                $m \gets m - M^\prime_{\floor{n/\floor{v/k}}}$
+                $m \gets m - M^\prime_{\floor{n/\floor{v/x}}}$
             }
         }
         $M^\prime_y \gets M^\prime_y + m$
@@ -306,11 +305,12 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
 }
 \end{algorithm}
 
-Algorithm \ref{Algo1} has three phases:
+Algorithm \ref{Algo1} has four phases:
 \begin{enumerate}
-\item The first phase is the sieving up to $\isqrt{n}$.  This is covered in line \ref{1-p1b} and before.  In this phase, we sieve the M\"{o}bius function up to $\isqrt{n}$, accumulate its values to compute the Mertens function, save both $\mu$ and $M$, and accumulate terms from part $X$ of (\ref{PhiFormula}).
-\item The second phase continues the sieve up to $a$.  This is covered in lines \ref{1-p12loopstart}--\ref{1-p2b}, with lines \ref{1-p1a}--\ref{1-p1b} omitted.  In this phase, we continue to accumulate M\"{o}bius values to compute Mertens values, and we continue to accumulate terms from part $X$ of (\ref{PhiFormula}), but we do not save any $\mu$, and only some Mertens values are saved.  As the final act of phase 2, we compute part $Z$ of (\ref{PhiFormula}).  At this point, $X$ and $Z$ are fully evaluated, and nothing has been done about $Y$.
-\item In the third phase, lines \ref{1-p3start} through \ref{1-p3end} feed the stored M\"{o}bius and Mertens values into (\ref{MertensRecursion}) to compute the remaining Mertens values in order of increasing argument---that is, we first compute $M(n/b)$, then $M(n/(b-1))$, then ..., and finally $M(n)$.  As each Mertens value is computed, a term from part $Y$ of (\ref{PhiFormula}) becomes available, and we evaluate it accordingly.
+\item Initialization, in lines \ref{1-p1start}--\ref{1-endinit}.
+\item Sieving up to $\isqrt{n}$.  This is covered in lines \ref{1-p12loopstart}--\ref{1-p1b}.  In this phase, we sieve the M\"{o}bius function up to $\isqrt{n}$, accumulate its values to compute the Mertens function, save both $\mu$ and $M$, and accumulate terms from part $X$ of (\ref{PhiFormula}).
+\item Continuing the sieve up to $a$.  This is covered in lines \ref{1-p12loopstart}--\ref{1-p2b}, skipping lines \ref{1-14}--\ref{1-p1b}.  In this phase, we continue to accumulate M\"{o}bius values to compute Mertens values, and we continue to accumulate terms from part $X$ of (\ref{PhiFormula}), but we do not save any $\mu$, and only some Mertens values are saved.  As the final act of phase 2, we compute part $Z$ of (\ref{PhiFormula}).  At this point, $X$ and $Z$ are fully evaluated, and nothing has been done about $Y$.
+\item In the fourth phase, lines \ref{1-p3start} through \ref{1-p3end} feed the stored M\"{o}bius and Mertens values into (\ref{MertensRecursion}) to compute the remaining Mertens values in order of increasing argument---that is, we first compute $M(n/b)$, then $M(n/(b-1))$, then ..., and finally $M(n)$.  As each Mertens value is computed, a term from part $Y$ of (\ref{PhiFormula}) becomes available, and we evaluate it accordingly.
 \end{enumerate}
 Once the third phase is done, $\Phi(n)$ is computed as $X+Y-Z$.
 
@@ -336,8 +336,8 @@ We now reduce Algorithm \ref{Algo1}'s memory usage from $\softTheta(\sqrt{n})$ t
 \caption{An extract from Algorithm \ref{Algo1}}
 \Begin{
     \For{$y=b$ \KwTo $1$}{
-        \For{$k=2$ \KwTo $\isqrt{n/y}$}{
-            $M^\prime_y \gets M^\prime_y - \mu_k \cdot \dfloordiv{n}{yk}$
+        \For{$x=2$ \KwTo $\isqrt{n/y}$}{
+            $M^\prime_y \gets M^\prime_y - \mu_x \cdot \dfloordiv{n}{yx}$
         }
     }
 }
@@ -345,15 +345,15 @@ We now reduce Algorithm \ref{Algo1}'s memory usage from $\softTheta(\sqrt{n})$ t
 
 If we can swap the order of the loops, then we will be able to integrate this line into phase 1 and not have to store the M\"{o}bius array.
 
-This extract iterates over all pairs $(y,k)$ such that $1 \leq y \leq b$ and $2 \leq k \leq \sqrt{n/y}$.  The range accessed by $k$ is therefore $2 \leq k \leq \sqrt{n}$, and for each $k$, $y$ ranges over $1 \leq y \leq \min(b, n/k^2)$.  This extract is therefore equivalent to
+This extract iterates over all pairs $(y,x)$ such that $1 \leq y \leq b$ and $2 \leq x \leq \sqrt{n/y}$.  The range accessed by $x$ is therefore $2 \leq x \leq \sqrt{n}$, and for each $x$, $y$ ranges over $1 \leq y \leq \min(b, n/x^2)$.  This extract is therefore equivalent to
 
 \begin{algorithm}[H] \label{Algo1mu_redone}
 \DontPrintSemicolon
 \caption{Algorithm \ref{Algo1mu}, reordered}
 \Begin{
-    \For{$k=2$ \KwTo $\isqrt{n}$}{
-        \For{$y=1$ \KwTo $\floor{\min(b,n/k^2)}$}{
-            $M^\prime_y \gets M^\prime_y - \mu_k \cdot \dfloordiv{n}{yk}$
+    \For{$x=2$ \KwTo $\isqrt{n}$}{
+        \For{$y=1$ \KwTo $\min(b,\floor{n/x^2})$}{
+            $M^\prime_y \gets M^\prime_y - \mu(x) \cdot \dfloordiv{n}{yx}$
         }
     }
 }
@@ -363,41 +363,41 @@ Applying this edit to Algorithm \ref{Algo1} replaces line A\ref{Algo1}.\ref{1-p1
 
 \begin{algorithm}[H] \label{Algo4}
 \DontPrintSemicolon
-\caption{Compute $\Phi(n)$ in $\widetilde{\Theta}(n^{2/3})$ time and $\widetilde{\Theta}(n^{1/2})$ space \cite{griff2023}}
+\caption{Compute $\Phi(n)$ in $\widetilde{\Theta}(n^{2/3})$ time and $\widetilde{\Theta}(n^{1/2})$ space \cite{griff2023}.  See file \texttt{totientsumD.py} for an implementation.}
 \KwData{$n \geq 1$}
 \KwResult{$\Phi(n)$}
 \Begin{
-    $a \gets \widetilde{\Theta}(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$
+    $a \gets \widetilde{\Theta}(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$ \label{4-2}
     
     \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
         $s \gets s-1$
     }
     
-    $\kappa \gets \floor{n/s}$
+    $\chi \gets \floor{n/s}$ \label{4-5}
     
-    Prepare a segmented Sieve of Eratosthenes to compute $\mu(k)$ for $1 \leq k \leq a$.
+    Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
     
     Let $M$ be an array indexed from $1$ through $\isqrt{n}$, inclusive.
     
     Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros.
     
-    \For{$k=1$ \KwTo $a$}{
-        $v \gets \floor{n/k}$
+    \For{$x=1$ \KwTo $a$}{
+        $v \gets \floor{n/x}$
         
-        $m \gets m + \mu(k)$
+        $m \gets m + \mu(x)$
         
-        $X \gets X + \mu(k) \cdot \dfrac{v \cdot (v+1)}{2}$
+        $X \gets X + \mu(x) \cdot \dfrac{v \cdot (v+1)}{2}$
         
-        \uIf{$k \leq \isqrt{n}$}{
-            $M_k = m$
+        \uIf{$x \leq \isqrt{n}$}{
+            $M_x = m$
             
-            \If{$k > 1$}{ \label{4-15}
-                \For{$y=1$ \KwTo $\floor{\min(b,n/k^2)}$}{
-                    $M^\prime_y \gets M^\prime_y - \mu_k \cdot \dfloordiv{n}{yk}$ \label{4-17}
+            \If{$x > 1$}{ \label{4-15}
+                \For{$y=1$ \KwTo $\min(b,\floor{n/x^2})$}{
+                    $M^\prime_y \gets M^\prime_y - \mu(x) \cdot \dfloordiv{n}{yx}$ \label{4-17}
                 }
             }
         }
-        \ElseIf{$k = \kappa$}{
+        \ElseIf{$x = \chi$}{
         
             \If{$v \neq b$}{
                 $M^\prime_{v} = m$
@@ -405,9 +405,9 @@ Applying this edit to Algorithm \ref{Algo1} replaces line A\ref{Algo1}.\ref{1-p1
             
             $s \gets s-1$
             
-            $\kappa \gets \floor{n/s}$
+            $\chi \gets \floor{n/s}$
         }
-        \If{$k = a$}{
+        \If{$x = a$}{
             $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$
         }
     }
@@ -417,12 +417,12 @@ Applying this edit to Algorithm \ref{Algo1} replaces line A\ref{Algo1}.\ref{1-p1
         
         $m = 1 - v + \isqrt{v} \cdot M_{\isqrt{v}}$ \label{4-27}
         
-        \For{$k=2$ \KwTo $\isqrt{v}$}{
-            \uIf{$\floor{v/k} \leq \isqrt{n}$}{
-                $m \gets m - M_{\floor{v/k}}$
+        \For{$x=2$ \KwTo $\isqrt{v}$}{
+            \uIf{$\floor{v/x} \leq \isqrt{n}$}{
+                $m \gets m - M_{\floor{v/x}}$
             }
             \Else{
-                $m \gets m - M^\prime_{\floor{n/\floor{v/k}}}$
+                $m \gets m - M^\prime_{\floor{n/\floor{v/x}}}$
             }
         }
         $M^\prime_y \gets M^\prime_y + m$
@@ -446,12 +446,127 @@ The next step is to move line A\ref{Algo4}.\ref{4-27} into phase 1.  The work th
 }
 \end{algorithm}
 
-Let $k=\isqrt{n/y}$.  Then $k$ is the unique integer such that
-\eqn{k \leq \sqrt{n/y} < k+1}
-\eqn{k^2 \leq \frac{n}{y} < (k+1)^2}
-\eqn{\frac{n}{(k+1)^2} < y \leq \frac{n}{k^2}}
+This is equivalent to
 
+\begin{algorithm}[H] \label{Algo4extract_redone}
+\DontPrintSemicolon
+\caption{Algorithm \ref{Algo4extract}, redone}
+\Begin{
+    \For{$x=1$ \KwTo $a$}{
+        \If{$\exists y \;\ni\; 1 \leq y \leq b \;\;\&\;\; x=\isqrt{n/y}$}{
+            \For{all such $y$}{
+                $M^\prime_y \gets M^\prime_y + 1 - \floor{n/y} + x \cdot M_x$
+            }
+        }
+    }
+}
+\end{algorithm}
 
+\begin{algorithm}[H] \label{Algo4extract_redone_again}
+\DontPrintSemicolon
+\caption{Algorithm \ref{Algo4extract}, redone again}
+\Begin{
+    
+    $d \gets b$
+    
+    $\gamma \gets \isqrt{n/d}$
+    
+    \For{$x=1$ \KwTo $a$}{
+        
+        \While{$x = \gamma$}{
+            $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$
+            
+            $d \gets d - 1$
+            
+            $\gamma \gets \isqrt{n/d}$
+        }
+    }
+}
+\end{algorithm}
+
+Applying this edit to Algorithm \ref{Algo4} yields Algorithm \ref{Algo8}.  Lines \ref{4-2} and \ref{4-5} have had actions added to them, lines A\ref{Algo8}.\ref{8-18}--\ref{8-21} have been inserted, and line A\ref{Algo4}.\ref{4-27} has been replaced with line A\ref{Algo8}.\ref{8-31}.
+
+\begin{algorithm}[H] \label{Algo8}
+\DontPrintSemicolon
+\caption{Compute $\Phi(n)$ in $\widetilde{\Theta}(n^{2/3})$ time and $\widetilde{\Theta}(n^{1/2})$ space \cite{griff2023}.  See file \texttt{totientsumE.py} for an implementation.}
+\KwData{$n \geq 1$}
+\KwResult{$\Phi(n)$}
+\Begin{
+    $a \gets \widetilde{\Theta}(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$; $d \gets b$
+    
+    \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
+        $s \gets s-1$
+    }
+    
+    $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
+    
+    Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
+    
+    Let $M$ be an array indexed from $1$ through $\isqrt{n}$, inclusive.
+    
+    Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros.
+    
+    \For{$x=1$ \KwTo $a$}{
+        $v \gets \floor{n/x}$
+        
+        $m \gets m + \mu(x)$
+        
+        $X \gets X + \mu(x) \cdot \dfrac{v \cdot (v+1)}{2}$
+        
+        \uIf{$x \leq \isqrt{n}$}{
+            $M_x = m$
+            
+            \If{$x > 1$}{
+                \For{$y=1$ \KwTo $\min(b,\floor{n/x^2})$}{
+                    $M^\prime_y \gets M^\prime_y - \mu(x) \cdot \dfloordiv{n}{yx}$
+                }
+                \While{$x = \gamma$}{ \label{8-18}
+                    $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$
+                    
+                    $d \gets d - 1$
+                    
+                    $\gamma \gets \isqrt{n/d}$ \label{8-21}
+                }
+            }
+        }
+        \ElseIf{$x = \chi$}{
+        
+            \If{$v \neq b$}{
+                $M^\prime_{v} = m$
+            }
+            
+            $s \gets s-1$
+            
+            $\chi \gets \floor{n/s}$
+        }
+        \If{$x = a$}{
+            $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$
+        }
+    }
+    
+    \For{$y=b$ \KwTo $1$}{
+        $v \gets \floor{n/y}$
+        
+        $m = 0$ \label{8-31}
+        
+        \For{$x=2$ \KwTo $\isqrt{v}$}{
+            \uIf{$\floor{v/x} \leq \isqrt{n}$}{
+                $m \gets m - M_{\floor{v/x}}$ \label{8-34}
+            }
+            \Else{
+                $m \gets m - M^\prime_{\floor{n/\floor{v/x}}}$
+            }
+        }
+        $M^\prime_y \gets M^\prime_y + m$
+        
+        $Y \gets Y + y \cdot M^\prime_y$
+    }
+    
+    \KwRet $X + Y - Z$
+}
+\end{algorithm}
+
+The final obstacle to removing array $M$ is line A\ref{Algo8}.\ref{8-34}.
 
 
 
@@ -482,6 +597,9 @@ Filename: \texttt{totientsumC.py}
 
 Filename: \texttt{totientsumD.py}
 %\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo4}.}]{code/totientsumD.py}
+
+Filename: \texttt{totientsumE.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo8}.}]{code/totientsumE.py}
 
 
 
