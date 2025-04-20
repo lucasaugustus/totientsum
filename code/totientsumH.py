@@ -4,13 +4,13 @@ from utils import *
 from time import time
 from math import log2, log10
 
-def totientsum_G(n):
+def totientsum_H(n):
     if n <= 10: return 0 if n < 0 else (0,1,2,4,6,10,12,18,22,28,32)[n]
     
     a = introot(n**2, 3)
     b = n // a
     nr = isqrt(n)
-    Mover = [0] * (n//nr + 1)  # Mover[n//x] will store Mertens(x) for large x.
+    Mover = [0] * (b + 1)  # Mover[n//x] will store Mertens(x) for large x.
     Mblock = {}
     
     mert = 0
@@ -52,7 +52,14 @@ def totientsum_G(n):
                 Mblock = {}
         
         elif x == chi:
-            if v != b: Mover[v] = mert
+            if v != b:
+                for y in range(1, b+1):
+                    tmin = 2
+                    tmax = isqrt(n//y)
+                    for t in range(tmin, tmax+1):
+                        if nr < n//(t*y):
+                            if n//x == n // (n//(t*y)):
+                                Mover[y] -= mert
             s -= 1
             chi = n // s
         
@@ -64,15 +71,14 @@ def totientsum_G(n):
         Mv = 0
         for x in range(2, vr+1):
             vx = v // x
-            if vx > nr: Mv -= Mover[n//vx]
+            if vx > nr:
+                if n//vx <= b:
+                    Mv -= Mover[n//vx]
         # Mv is now Mertens(v).
         Mover[y] += Mv
         Y += y * Mover[y]
     
     return X + Y - Z
-
-
-
 
 
 
@@ -102,6 +108,7 @@ if __name__ == "__main__":
     from totientsumD import totientsum_D
     from totientsumE import totientsum_E
     from totientsumF import totientsum_F
+    from totientsumG import totientsum_G
     
     methods = (totientsum, \
                #totientsum_C, \
@@ -109,6 +116,7 @@ if __name__ == "__main__":
                totientsum_E, \
                #totientsum_F, \
                totientsum_G, \
+               totientsum_H, \
               )
     
     if "testlow" in argv:
@@ -160,6 +168,6 @@ if __name__ == "__main__":
         assert len(set(answers)) == 1
     
     if len(argv) > 1:
-        print(totientsum_G(int(argv[1])))
+        print(totientsum_H(int(argv[1])))
 
 

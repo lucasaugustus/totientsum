@@ -61,7 +61,7 @@
 \newcommand{\currentdatetime}{\currentdate\ / \currenttime}%\ \timezone}
 
 \title{Computation of the Totient Summatory Function}
-\author{Lucas A. Brown}
+\author{Lucas A. Brown \todo orcid}
 \date{\currentdatetime}
 
 \usepackage{fancyhdr}
@@ -205,13 +205,15 @@ The sieve of Eratosthenes can be modified to compute $\phi(n)$ for all $1 \leq n
 
 Hirsch, Kessler, and Mendlovic outline \cite[\S5.6]{HKM2024} a method to compute $\Phi(n)$ in $\softO(n^{1/2})$ time and $\softO(n^{1/2})$ space.  However, this has never been implemented, and the hidden constants are expected to make the algorithm non-competitive for practical values of $n$.  \todo the HKM prime-counting algorithm has space-time tradeoffs.  What tradeoffs are available for $\Phi$?
 
+\subsection{The Mertens-first algorithm}
+
 By applying the Dirichlet hyperbola method to the convolution $\phi = \mu * I$, and letting $ab=n$, we obtain the formula
 \eqn{\Phi(n) = \sum_{x=1}^{a}\sum_{y=1}^{n/x} \mu(x) \, I(y) + \sum_{y=1}^{b}\sum_{x=1}^{n/y} \mu(x) \, I(y) - \sum_{x=1}^{a}\sum_{y=1}^{b} \mu(x) \, I(y)}
 \eqn{ = \sum_{x=1}^{a}\sum_{y=1}^{n/x} y \cdot \mu(x) + \sum_{y=1}^{b}\sum_{x=1}^{n/y} y \cdot \mu(x) - \sum_{x=1}^{a}\sum_{y=1}^{b} y \cdot \mu(x)}
 \neqn{\Phi(n) = \underbrace{\sum_{x=1}^{a} \mu(x) \cdot \frac{\floordiv{n}{x} \cdot \left(\floordiv{n}{x} + 1\right)}{2}}_{X} + \underbrace{\sum_{y=1}^{b} y \cdot M(n/y)}_{Y} - \underbrace{\frac{b \cdot (b+1)}{2} \cdot M(a)}_{Z} \label{PhiFormula}}
 The labels $X$, $Y$, and $Z$ will be used later.
 
-Suppose that we have an algorithm that can compute $M(x)$ in time $\softO(x^c)$, and observe that sieving tells us that $c\leq1$ is available.  Using a sieve to compute the necessary M\"obius values, but otherwise evaluating this formula na\"{i}vely, takes time
+Suppose that we have an algorithm that can compute $M(x)$ in time $\softO(x^c)$, and note that $c < 1$ is available.  Using a sieve to compute the necessary M\"obius values, but otherwise evaluating this formula na\"{i}vely, takes time
 \eqn{\softO\left( a + \sum_{x=1}^b \left(\frac{n}{x}\right)^c + a^c \right)}
 \eqn{=\softO\left( a + n^c \integral{x^{-c}}{x}{1}{b} + a^c \right)}
 \eqn{=\softO\left( a + n^c\frac{b^{1-c}}{1-c} - n^c\frac{1^{1-c}}{1-c} + a^c \right)}
@@ -235,19 +237,17 @@ When evaluating (\ref{PhiFormula}), we need to find $\mu(k)$ for $1 \leq k \leq 
 
 When evaluating (\ref{MertensRecursion}), we need to find $\mu(k)$ for $1 \leq k \leq \alpha$, $M(\alpha)$, and $M(n/k)$ for $2 \leq k \leq \beta$.
 
-Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=b$), sieve $\mu$ up to $a$, accumulate the values along the way to compute $M$ up to $a$, use (\ref{MertensRecursion}) to compute the remaining Mertens values, and then feed all that data into (\ref{PhiFormula}) to compute $\Phi(n)$.  This results in Algorithm \ref{Algo1}.
+Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=b$), sieve $\mu$ up to $a$, accumulate the values along the way to compute $M$ up to $a$, use (\ref{MertensRecursion}) to compute the remaining Mertens values, and then feed all that data into (\ref{PhiFormula}) to compute $\Phi(n)$.  This results in Algorithm \ref{Algo1}, which I call the \emph{Mertens-first algorithm}.
 
 \begin{algorithm}[H] \label{Algo1}
 \DontPrintSemicolon
-\caption{Compute $\Phi(n)$ in $\softTheta(n^{2/3})$ time and $\softTheta(n^{1/2})$ space \cite{griff2023}.  See file \texttt{totientsumC.py} for an implementation.}
+\caption{Compute $\Phi(n)$ in $\softTheta(n^{2/3})$ time and $\softTheta(n^{1/2})$ space using the Mertens-first algorithm \cite{griff2023}.  See file \texttt{totientsumC.py} for an implementation.}
 \KwData{$n \geq 1$}
 \KwResult{$\Phi(n)$}
 \Begin{
     $a \gets \softTheta(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$ \label{1-p1start}
     
-    \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
-        $s \gets s-1$
-    }
+    \lIf{$\isqrt{n} = \floor{n/\isqrt{n}}$}{$s \gets s-1$}
     
     $\chi \gets \floor{n/s}$
     
@@ -271,20 +271,20 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
         }
         \ElseIf{$x = \chi$}{ \label{1-p2a}
         
-            \If{$v \neq b$}{ \label{1-17}
-                $M^\prime_{v} \gets m$ \label{1-18}
-            }
+            \lIf{$v \neq b$}{$M^\prime_{v} \gets m$} \label{1-17}
             
             $s \gets s-1$
             
             $\chi \gets \floor{n/s}$
         }
-        \If{$x = a$}{
-            $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$ \label{1-p2b}
-        }
+        \lIf{$x = a$}{$Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$} \label{1-p2b}
     }
     
     \label{1-p1end}
+    
+    \emph{lines \ref{1-p3start}--\ref{1-p3end} here}
+    
+    \columnbreak
     
     \For{$y=b$ \KwTo $1$}{ \label{1-p3start}
         $v \gets \floor{n/y}$
@@ -307,8 +307,6 @@ Clearly, these work well together: we can take $\alpha=a$ (and therefore $\beta=
     }
     \end{multicols}
     
-    \vspace{1em}
-    
     \KwRet $X + Y - Z$
 }
 \end{algorithm}
@@ -322,7 +320,7 @@ Algorithm \ref{Algo1} has four phases:
 \end{enumerate}
 Once the third phase is done, $\Phi(n)$ is computed as $X+Y-Z$.
 
-Line \ref{1-18} is gatekept by line \ref{1-17}.  This is needed to mitigate an overlap in the phases that occurs for some $(a,n)$ pairs.  In such cases, without the gatekeeping, line \ref{1-18} would set $M^\prime_b$ to $M(a)$, which should be its final value, but it then gets modifed in the first iteration through phase 3, which throws things off.  With line \ref{1-17} in place, $M^\prime_b$ is not touched until phase 3.
+Line \ref{1-17} is gatekept by the condition $v \neq b$.  This is needed to mitigate an overlap in the phases that occurs for some $(a,n)$ pairs.  In such cases, without the gatekeeping, line \ref{1-17} would set $M^\prime_b$ to $M(a)$, which should be its final value, but it then gets modifed in the first iteration through phase 3, which throws things off.  With the condition $v \neq b$ in place, $M^\prime_b$ is not touched until phase 3.
 
 Algorithm \ref{Algo1} takes $\softTheta(n^{2/3})$ time: phases 0--2 combined clearly take $\softTheta(a)$ time, and phase 3 takes time
 \eqn{\softTheta \left( \sum_{y=1}^b \left( \isqrt{\frac{n}{y}} - 1 \right) \right)}
@@ -335,7 +333,17 @@ Algorithm \ref{Algo1} takes $\softTheta(n^{2/3})$ time: phases 0--2 combined cle
 
 Algorithm 1 takes $\softTheta(\sqrt{n})$ space: we use three arrays of $\Theta(\sqrt{n})$ elements each to store the M\"{o}bius and Mertens values, the M\"{o}bius sieving consumes $\softO(\sqrt{a})$ space, and everything else fits in $O(1)$ space.
 
-\section{A new algorithm}
+\subsection{The totient-only algorithm}
+
+We now describe another existing algorithm, also taking $\softTheta(n^{2/3})$ time and $\softTheta(n^{1/2})$ space, that avoids using the Mertens function.
+
+Consider the set of ordered pairs $(a,b)$ with $1 \leq a \leq b \leq n$.  There are $n \cdot (n+1) / 2$ of them.  We can partition this set into $n$ disjoint subsets according to $\gcd(a,b)$.  Those pairs with $\gcd(a,b)=g$ are exactly those pairs $(\alpha g, \beta g)$ where $\gcd(\alpha, \beta) = 1$ and $1 \leq \alpha \leq \beta \leq \floor{n/g}$, which in turn are exactly those pairs counted by $\Phi(\floor{n/g})$.  Therefore
+\eqn{\frac{n \cdot (n+1)}{2} = \sum_{g=1}^n \Phi\left(\floordiv{n}{g}\right),}
+so that
+\eqn{\Phi(n) = \frac{n \cdot (n+1)}{2} - \sum_{g=2}^n \Phi\left(\floordiv{n}{g}\right).}
+\todo
+
+\section{The Mertens-first algorithm in less space}
 
 We now reduce Algorithm \ref{Algo1}'s memory usage from $\softTheta(\sqrt{n})$ to $\softTheta(\sqrt[3]{n})$.  The first step is to observe that we can move line \ref{1-p3mobius} into phase 1.  The work done in that line is essentially as follows:
 
@@ -377,9 +385,7 @@ Applying this edit to Algorithm \ref{Algo1} replaces line \ref{1-p1b} with lines
 \Begin{
     $a \gets \softTheta(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$ \label{4-2}
     
-    \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
-        $s \gets s-1$
-    }
+    \lIf{$\isqrt{n} = \floor{n/\isqrt{n}}$}{$s \gets s-1$}
     
     $\chi \gets \floor{n/s}$ \label{4-5}
     
@@ -407,20 +413,20 @@ Applying this edit to Algorithm \ref{Algo1} replaces line \ref{1-p1b} with lines
         }
         \ElseIf{$x = \chi$}{
         
-            \If{$v \neq b$}{
-                $M^\prime_{v} \gets m$
-            }
+            \lIf{$v \neq b$}{$M^\prime_{v} \gets m$}
             
             $s \gets s-1$
             
             $\chi \gets \floor{n/s}$
         }
-        \If{$x = a$}{
-            $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$
-        }
+        \lIf{$x = a$}{$Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$}
     }
     
-    \For{$y=b$ \KwTo $1$}{
+    \emph{lines \ref{4-26}--\ref{4-35} here}
+    
+    \columnbreak
+    
+    \For{$y=b$ \KwTo $1$}{ \label{4-26}
         $v \gets \floor{n/y}$
         
         $m \gets 1 - v + \isqrt{v} \cdot M_{\isqrt{v}}$ \label{4-27}
@@ -435,11 +441,9 @@ Applying this edit to Algorithm \ref{Algo1} replaces line \ref{1-p1b} with lines
         }
         $M^\prime_y \gets M^\prime_y + m$
         
-        $Y \gets Y + y \cdot M^\prime_y$
+        $Y \gets Y + y \cdot M^\prime_y$ \label{4-35}
     }
     \end{multicols}
-    
-    \vspace{1em}
     
     \KwRet $X + Y - Z$
 }
@@ -505,9 +509,7 @@ Applying this edit to Algorithm \ref{Algo4} yields Algorithm \ref{Algo8}.  Lines
 \Begin{
     $a \gets \softTheta(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$; $d \gets b$
     
-    \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
-        $s \gets s-1$
-    }
+    \lIf{$\isqrt{n} = \floor{n/\isqrt{n}}$}{$s \gets s-1$}
     
     $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
     
@@ -531,31 +533,31 @@ Applying this edit to Algorithm \ref{Algo4} yields Algorithm \ref{Algo8}.  Lines
                 \For{$y=1$ \KwTo $\min(b,\floor{n/x^2})$}{
                     $M^\prime_y \gets M^\prime_y - \mu(x) \cdot \dfloordiv{n}{yx}$
                 }
-                \While{$x = \gamma$}{ \label{8-18}
-                    $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$
-                    
-                    $d \gets d - 1$
-                    
-                    $\gamma \gets \isqrt{n/d}$ \label{8-21}
-                }
+            }
+            \While{$x = \gamma$}{ \label{8-18}
+                $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$
+                
+                $d \gets d - 1$
+                
+                $\gamma \gets \isqrt{n/d}$ \label{8-21}
             }
         }
         \ElseIf{$x = \chi$}{
         
-            \If{$v \neq b$}{
-                $M^\prime_{v} \gets m$
-            }
+            \lIf{$v \neq b$}{$M^\prime_{v} \gets m$}
             
             $s \gets s-1$
             
             $\chi \gets \floor{n/s}$
         }
-        \If{$x = a$}{
-            $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$
-        }
+        \lIf{$x = a$}{$Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$}
     }
     
-    \For{$y=b$ \KwTo $1$}{
+    \emph{lines \ref{8-30}--\ref{8-39} here}
+    
+    \columnbreak
+    
+    \For{$y=b$ \KwTo $1$}{ \label{8-30}
         $v \gets \floor{n/y}$
         
         $m \gets 0$ \label{8-31}
@@ -570,12 +572,10 @@ Applying this edit to Algorithm \ref{Algo4} yields Algorithm \ref{Algo8}.  Lines
         }
         $M^\prime_y \gets M^\prime_y + m$
         
-        $Y \gets Y + y \cdot M^\prime_y$
+        $Y \gets Y + y \cdot M^\prime_y$ \label{8-39}
     }
     
     \end{multicols}
-    
-    \vspace{1em}
     
     \KwRet $X + Y - Z$
 }
@@ -614,6 +614,8 @@ Since $A$ and $x$ are integers, the rightmost condition is equivalent to
 \eqn{A \leq \frac{n}{\ell t} < x + 1}
 \eqn{\frac{1}{x+1} < \frac{\ell t}{n} \leq \frac{1}{A}}
 \eqn{\frac{n}{t \cdot (x+1)} < \ell \leq \frac{n}{At}.}
+Furthermore, since $t \leq b$ and the relevant $x$-values are $\leq \isqrt{n}$, the lesser side of this inequality is at least $\softTheta(n^{1/6})$; therefore, the restriction $2 \leq \ell$ above is superfluous.
+
 Algorithm \ref{Algo8_extract} is therefore equivalent to
 
 \begin{algorithm}[H] \label{Algo8_extract_redone}
@@ -623,13 +625,12 @@ Algorithm \ref{Algo8_extract} is therefore equivalent to
     \For{$x=1$ \KwTo $a$}{
         \If{$x \leq \sqrt{n}$}{
             $\mathcal{M}_x \gets m$
-        }
         
         \If{$b \mid x$, or $x = \isqrt{n}$,}{
             Let $A$ be the least index in $\mathcal{M}$.
             
             \For{$t=1$ \KwTo $b$}{
-                $\ell_{min} \gets \max\left( 2 , 1 + \dfloordiv{n}{t \cdot (x+1)} \right)$
+                $\ell_{min} \gets 1 + \dfloordiv{n}{t \cdot (x+1)}$
                 
                 $\ell_{max} \gets \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot A} \right)$
                 
@@ -639,6 +640,7 @@ Algorithm \ref{Algo8_extract} is therefore equivalent to
             }
             
             Forget the contents of $\mathcal{M}$.
+        }
         }
     }
 }
@@ -654,9 +656,7 @@ Applying this edit to Algorithm \ref{Algo8} yields Algorithm \ref{Algo11}.  Line
 \Begin{
     $a \gets \softTheta(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$; $d \gets b$
     
-    \If{$\isqrt{n} = \floor{n/\isqrt{n}}$}{
-        $s \gets s-1$
-    }
+    \lIf{$\isqrt{n} = \floor{n/\isqrt{n}}$}{$s \gets s-1$}
     
     $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
     
@@ -683,46 +683,46 @@ Applying this edit to Algorithm \ref{Algo8} yields Algorithm \ref{Algo11}.  Line
                 \For{$y=1$ \KwTo $\min(b,\floor{n/x^2})$}{
                     $M^\prime_y \gets M^\prime_y - \mu(x) \cdot \dfloordiv{n}{yx}$
                 }
-                \While{$x = \gamma$}{
-                    $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$
+            }
+            \While{$x = \gamma$}{
+                $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$
+                
+                $d \gets d - 1$
+                
+                $\gamma \gets \isqrt{n/d}$
+            }
+            \If{$b \mid x$, or $x = \isqrt{n}$,}{ \label{11-22}
+                Let $A$ be the least index in $\mathcal{M}$.
+                
+                \For{$t=1$ \KwTo $b$}{
+                    $\ell_{min} \gets 1 + \dfloordiv{n}{t \cdot (x+1)}$
                     
-                    $d \gets d - 1$
+                    $\ell_{max} \gets \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot A} \right)$
                     
-                    $\gamma \gets \isqrt{n/d}$
-                }
-                \If{$b \mid x$, or $x = \isqrt{n}$,}{ \label{11-22}
-                    Let $A$ be the least index in $\mathcal{M}$.
-                    
-                    \For{$t=1$ \KwTo $b$}{
-                        $\ell_{min} \gets \max\left( 2 , 1 + \dfloordiv{n}{t \cdot (x+1)} \right)$
-                        
-                        $\ell_{max} \gets \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot A} \right)$
-                        
-                        \For{$\ell=\ell_{min}$ \KwTo $\ell_{max}$}{
-                            $M^\prime_t \gets M^\prime_t - \mathcal{M}_{\floor{n/(\ell t)}}$
-                        }
+                    \For{$\ell=\ell_{min}$ \KwTo $\ell_{max}$}{
+                        $M^\prime_t \gets M^\prime_t - \mathcal{M}_{\floor{n/(\ell t)}}$
                     }
-                    
-                    Forget the contents of $\mathcal{M}$. \label{11-29}
                 }
+                
+                Forget the contents of $\mathcal{M}$. \label{11-29}
             }
         }
         \ElseIf{$x = \chi$}{
         
-            \If{$v \neq b$}{
-                $M^\prime_{v} \gets m$
-            }
+            \lIf{$v \neq b$}{$M^\prime_{v} \gets m$}
             
             $s \gets s-1$
             
             $\chi \gets \floor{n/s}$
         }
-        \If{$x = a$}{
-            $Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$
-        }
+        \lIf{$x = a$}{$Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$}
     }
     
-    \For{$y=b$ \KwTo $1$}{
+    \emph{lines \ref{11-38}--\ref{11-45} here}
+    
+    \columnbreak
+    
+    \For{$y=b$ \KwTo $1$}{ \label{11-38}
         $v \gets \floor{n/y}$
         
         $m \gets 0$
@@ -734,21 +734,496 @@ Applying this edit to Algorithm \ref{Algo8} yields Algorithm \ref{Algo11}.  Line
         }
         $M^\prime_y \gets M^\prime_y + m$
         
-        $Y \gets Y + y \cdot M^\prime_y$
+        $Y \gets Y + y \cdot M^\prime_y$ \label{11-45}
     }
     
     \end{multicols}
     
+    \KwRet $X + Y - Z$
+}
+\end{algorithm}
+
+The only thing left to do is remove the need to store $M^\prime_k$ for $k > b$.
+
+\begin{algorithm}[H] \label{Algo11_extract}
+\DontPrintSemicolon
+\caption{An extract from Algorithm \ref{Algo11}}
+\Begin{
+    \For{$y=b$ \KwTo $1$}{
+        $v \gets \floor{n/y}$
+        
+        $m \gets 0$
+        
+        \For{$t=2$ \KwTo $\isqrt{v}$}{
+            \If{$\floor{v/t} > \isqrt{n}$}{
+                $m \gets m - M^\prime_{\floor{n/\floor{v/t}}}$
+            }
+        }
+        $M^\prime_y \gets M^\prime_y + m$
+    }
+    
+}
+\end{algorithm}
+
+We have replaced the variable $x$ with $t$.  \todo Should I do that to all prior editions?
+
+Let $x$ be the index of a Mertens value that gets saved during phase 2 (so that $\isqrt{n} < x \leq a$).  It gets stored as $M^\prime_\floor{n/x}$, and the $t$- and $y$-values of this loop that touch it are exactly those that satisfy
+\eqn{1 \leq y \leq b \quadtext{and} 2 \leq t \leq \isqrt{n/y} \quadtext{and} \isqrt{n} < \floordiv{n}{ty} \quadtext{and} \floordiv{n}{x} = \floordiv{n}{\floor{n/(ty)}}.}
+As with the transition from Algorithm \ref{Algo8} to Algorithm \ref{Algo11}, we need to assemble a batch of Mertens values and process them all at once to avoid breaking the clock.  To accommodate this, for each $x$-value such that $M(x)$ gets assembled into the batch, let $w=\floor{n/x}$.  Let $A$ be the greatest $w$-value in the batch and let $B$ be the least.  Then the restrictions on $t$ become
+\neqn{2 \leq t \leq \isqrt{n/y} \quadtext{and} \isqrt{n} < \floordiv{n}{ty} \quadtext{and} B \leq \floordiv{n}{\floor{n/(ty)}} \leq A. \label{cbafnlj}}
+The result is Algorithm \ref{Algo13}.
+
+\begin{algorithm}[H] \label{Algo13}
+\DontPrintSemicolon \scriptsize
+\caption{Compute $\Phi(n)$ in $\softTheta(n^{2/3})$ time and $\softTheta(n^{1/3})$ space.  See file \texttt{totientsumI.py} for an implementation.}
+\KwData{$n \geq 1$}
+\KwResult{$\Phi(n)$}
+\Begin{
+    $a \gets \softTheta(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$; $d \gets b$
+    
+    \lIf{$\isqrt{n} = \floor{n/\isqrt{n}}$}{$s \gets s-1$}
+    
+    $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
+    
+    Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
+    
+    Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros.
+    
+    Let $\mathcal{M}$ be an array of size $b$.  Its indexing will vary as the algorithm executes.
+    
     \vspace{1em}
+    
+    \begin{multicols}{2}
+    \For{$x=1$ \KwTo $a$}{
+        $v \gets \floor{n/x}$
+        
+        $m \gets m + \mu(x)$
+        
+        $X \gets X + \mu(x) \cdot \dfrac{v \cdot (v+1)}{2}$
+        
+        \uIf{$x \leq \isqrt{n}$}{
+            $\mathcal{M}_x \gets m$
+            
+            \If{$x > 1$}{
+                \For{$y=1$ \KwTo $\min(b,\floor{n/x^2})$}{
+                    $M^\prime_y \gets M^\prime_y - \mu(x) \cdot \dfloordiv{n}{yx}$ \label{13-16}
+                }
+            }
+            \While{$x = \gamma$}{
+                $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$ \label{13-18}
+                
+                $d \gets d - 1$
+                
+                $\gamma \gets \isqrt{n/d}$ \label{13-20}
+            }
+            \If{$b \mid x$, or $x = \isqrt{n}$,}{ \label{13-21}
+                Let $A$ be the least index in $\mathcal{M}$.
+                
+                \For{$t=1$ \KwTo $b$}{
+                    $\ell_{min} \gets 1 + \dfloordiv{n}{t \cdot (x+1)}$
+                    
+                    $\ell_{max} \gets \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot A} \right)$
+                    
+                    \For{$\ell=\ell_{min}$ \KwTo $\ell_{max}$}{
+                        $M^\prime_t \gets M^\prime_t - \mathcal{M}_{\floor{n/(\ell t)}}$ \label{13-27}
+                    }
+                }
+                
+                Forget the contents of $\mathcal{M}$.
+            }
+        }
+        \ElseIf{$x = \chi$}{
+        
+            \If{$v \neq b$}{
+                
+                \lIf{$\mathcal{M}$ is empty}{$A \gets v$}
+                
+                $\mathcal{M}_v \gets m$; $B \gets v$
+            }
+            
+            $s \gets s-1$
+            
+            $\chi \gets \floor{n/s}$
+        }
+        \lIf{$x = a$}{$Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$}
+        \If{$x = a$ or ($x > \isqrt{n}$ and $\mathcal{M}$ is full)}{
+            \For{$y=1$ to $b$}{
+                \ForAll{$t$ satisfying (\ref{cbafnlj})}{
+                    $M^\prime_y \gets M^\prime_y - \mathcal{M}_{ty}$ \label{13-39}
+                }
+            }
+            Forget the contents of $\mathcal{M}$.
+        }
+    }
+    
+    \emph{lines \ref{13-42}--\ref{13-49} here}
+    
+    \columnbreak
+    
+    \For{$y=b$ \KwTo $1$}{ \label{13-42}
+        $v \gets \floor{n/y}$
+        
+        $m \gets 0$
+        
+        \For{$x=2$ \KwTo $\isqrt{v}$}{ \label{13-45}
+            \If{$\floor{v/x} > \isqrt{n}$ and $\floor{n/\floor{v/x}} \leq b$}{ \label{13-46}
+                $m \gets m - M^\prime_{\floor{n/\floor{v/x}}}$ \label{13-47}
+            }
+        }
+        $M^\prime_y \gets M^\prime_y + m$
+        
+        $Y \gets Y + y \cdot M^\prime_y$ \label{13-49}
+    }
+    
+    \end{multicols}
+    
+    \KwRet $X + Y - Z$
+}
+\end{algorithm}
+
+We have now hit our target time- and space-complexities, but some further optimization can be done.  In particular, the iteration over $x$ in phase 3---lines \ref{13-45}--\ref{13-47}--can be made more efficient.  The conditions on $x$ are
+\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} \floordiv{\floor{n/y}}{x} > \isqrt{n} \qquadtext{and} \floordiv{n}{\floor{\floor{n/y}/x}} \leq b}
+\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} \floordiv{\floor{n/y}}{x} \geq \isqrt{n}+1 \qquadtext{and} \floordiv{n}{\floor{\floor{n/y}/x}} \leq b}
+\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} \frac{\floor{n/y}}{x} \geq \isqrt{n}+1 \qquadtext{and} \frac{n}{\floor{\floor{n/y}/x}} < b+1}
+\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} x \leq \frac{\floor{n/y}}{\isqrt{n}+1} \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{x}}
+Since $x$ is an integer, we can apply the floor function to the upper side of the middle inequality.
+\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} x \leq \floor{\frac{\floor{n/y}}{\isqrt{n}+1}} \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{x}}
+By Lemma \ref{lemma1}, we can drop the $x \leq \isqrt{n/y}$ condition, yielding
+\eqn{2 \leq x \qquadtext{and} x \leq \floor{\frac{\floor{n/y}}{\isqrt{n}+1}} \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{x}.}
+The rightmost inequality is stricter than the middle inequality, so we are left with
+\eqn{2 \leq x \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{x}.}
+Making the corresponding edit yields
+
+\begin{algorithm}[H] \label{Algo14}
+\DontPrintSemicolon \scriptsize
+\caption{Compute $\Phi(n)$ in $\softTheta(n^{2/3})$ time and $\softTheta(n^{1/3})$ space.  See file \texttt{totientsumJ.py} for an implementation.}
+\KwData{$n \geq 1$}
+\KwResult{$\Phi(n)$}
+\Begin{
+    $a \gets \softTheta(n^{2/3})$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \gets 0$; $Z \gets 0$; $m \gets 0$; $s \gets \isqrt{n}$; $d \gets b$
+    
+    \lIf{$\isqrt{n} = \floor{n/\isqrt{n}}$}{$s \gets s-1$}
+    
+    $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
+    
+    Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
+    
+    Let $M^\prime$ be an array indexed from $1$ through $\floor{n/\isqrt{n}}$, inclusive, initialized to all zeros.
+    
+    Let $\mathcal{M}$ be an array of size $b$.  Its indexing will vary as the algorithm executes.
+    
+    \vspace{1em}
+    
+    \begin{multicols}{2}
+    \For{$x=1$ \KwTo $a$}{
+        $v \gets \floor{n/x}$
+        
+        $m \gets m + \mu(x)$
+        
+        $X \gets X + \mu(x) \cdot \dfrac{v \cdot (v+1)}{2}$
+        
+        \uIf{$x \leq \isqrt{n}$}{
+            $\mathcal{M}_x \gets m$
+            
+            \If{$x > 1$}{
+                \For{$y=1$ \KwTo $\min(b,\floor{n/x^2})$}{
+                    $M^\prime_y \gets M^\prime_y - \mu(x) \cdot \dfloordiv{n}{yx}$ \label{14-16}
+                }
+            }
+            \While{$x = \gamma$}{
+                $M^\prime_d \gets M^\prime_d + 1 - \floor{n/d} + x \cdot M_x$ \label{14-18}
+                
+                $d \gets d - 1$
+                
+                $\gamma \gets \isqrt{n/d}$ \label{14-20}
+            }
+            \If{$b \mid x$, or $x = \isqrt{n}$,}{ \label{14-21}
+                Let $A$ be the least index in $\mathcal{M}$.
+                
+                \For{$t=1$ \KwTo $b$}{
+                    $\ell_{min} \gets 1 + \dfloordiv{n}{t \cdot (x+1)}$
+                    
+                    $\ell_{max} \gets \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot A} \right)$
+                    
+                    \For{$\ell=\ell_{min}$ \KwTo $\ell_{max}$}{
+                        $M^\prime_t \gets M^\prime_t - \mathcal{M}_{\floor{n/(\ell t)}}$ \label{14-27}
+                    }
+                }
+                
+                Forget the contents of $\mathcal{M}$.
+            }
+        }
+        \ElseIf{$x = \chi$}{
+        
+            \If{$v \neq b$}{
+                
+                \lIf{$\mathcal{M}$ is empty}{$A \gets v$}
+                
+                $\mathcal{M}_v \gets m$; $B \gets v$
+            }
+            
+            $s \gets s-1$
+            
+            $\chi \gets \floor{n/s}$
+        }
+        \lIf{$x = a$}{$Z \gets m \cdot \dfrac{b \cdot (b+1)}{2}$}
+        \If{$x = a$ or ($x > \isqrt{n}$ and $\mathcal{M}$ is full)}{
+            \For{$y=1$ to $b$}{
+                \ForAll{$t$ satisfying (\ref{cbafnlj})}{
+                    $M^\prime_y \gets M^\prime_y - \mathcal{M}_{ty}$ \label{14-39}
+                }
+            }
+            Forget the contents of $\mathcal{M}$.
+        }
+    }
+    
+    \emph{lines \ref{14-42}--\ref{14-48} here}
+    
+    \columnbreak
+    
+    \For{$y=b$ \KwTo $1$}{ \label{14-42}
+        $v \gets \floor{n/y}$
+        
+        $m \gets 0$
+        
+        \ForAll{$x$ such that $2 \leq x$ and $\dfrac{n}{b+1} < \dfloordiv{\floor{n/y}}{x}$}{ \label{14-45}
+            $m \gets m - M^\prime_{\floor{n/\floor{v/x}}}$ \label{14-46}
+        }
+        $M^\prime_y \gets M^\prime_y + m$
+        
+        $Y \gets Y + y \cdot M^\prime_y$ \label{14-48}
+    }
+    
+    \end{multicols}
     
     \KwRet $X + Y - Z$
 }
 \end{algorithm}
 
 
+\subsection{Analysis of Algorithm \ref{Algo14}}
 
+The lines that (have the potential to) dominate the execution time are the M\"{o}bius siever, \ref{14-16}, \ref{14-18}--\ref{14-20}, \ref{14-27}, \ref{14-39}, and \ref{14-46}.
 
+The M\"{o}bius function is sieved up to $a$, so this consumes
+\neqn{\Theta(a \ln(\ln(a))) \label{14-M-time}}
+time.
 
+Line \ref{14-16} is hit
+\eqn{\sum_{x=2}^{\isqrt{n}} \min\left(\floordiv{n}{a}, \floordiv{n}{x^2}\right)}
+\eqn{= \sum_{x=2}^{\isqrt{a}} \floordiv{n}{a} + \sum_{x=\isqrt{a}+1}^{\isqrt{n}} \floordiv{n}{x^2}}
+\eqn{= \floordiv{n}{a} \cdot \left(\isqrt{a} - 1\right) + \Theta\left(\integral{\;\frac{n}{x^2}}{x}{\isqrt{a}+1}{\isqrt{n}}\right)}
+\eqn{= \floordiv{n}{a} \cdot \left(\isqrt{a} - 1\right) + \Theta\left( - n \cdot \eval{x^{-1}}{x=\isqrt{a}+1}{\isqrt{n}} \right)}
+\eqn{= \floordiv{n}{a} \cdot \left(\isqrt{a} - 1\right) + \Theta\left( - n \cdot \left(\frac{1}{\isqrt{n}} - \frac{1}{\isqrt{a}+1}\right)\right)}
+\eqn{= \floordiv{n}{a} \cdot \left(\isqrt{a} - 1\right) + \Theta\left(\frac{n}{\isqrt{a}+1} - \frac{n}{\isqrt{n}}\right)}
+\eqn{= \Theta\left(\frac{n}{\isqrt{a}} + \frac{n}{\isqrt{a}+1} - \frac{n}{\isqrt{n}}\right)}
+\eqn{= \Theta\left(\frac{n}{\sqrt{a}} - \sqrt{n}\right)}
+\neqn{= \Theta\left(\frac{n}{\sqrt{a}}\right) \label{14-16-time}}
+times.
+
+Lines \ref{14-18}--\ref{14-20} can be neglected: they get hit at most $b$ times, and the time per hit is dominated by the computation of a single square root.
+
+Line \ref{14-27} does not get hit on each iteration of phase 1.  On an $x$-value where it gets hit, it consumes
+
+Line \ref{14-27} gets hit at least
+\eqn{\sum_{\substack{1 \leq x \leq \sqrt{n} \\ b \mid x}}\sum_{t=1}^b \left( 1 + \max\left( \ell_{max}(x,t) - \ell_{min}(x,t), 0 \right) \right)}
+times.  If $b \mid \isqrt{x}$, then this is exactly the number of hits; otherwise, there will be a final phase-1 batch that is not included in the above sum
+
+The first batch ($x=b$) and last batch $(x=\isqrt{n})$ need special handling.  For the first batch, when $x=b$, the relevant section of the algorithm amounts to
+
+\begin{algorithm}[H]
+\DontPrintSemicolon
+\caption{An extract from Algorithm \ref{Algo14}, with $x=b$}
+\Begin{
+    \For{$t=1$ \KwTo $b$}{
+        $\ell_{min} \gets 1 + \dfloordiv{n}{t \cdot (b+1)}$
+        
+        $\ell_{max} \gets \min\left( \isqrt{n/t} , \dfloordiv{n}{t} \right)$
+        
+        \For{$\ell=\ell_{min}$ \KwTo $\ell_{max}$}{
+            $M^\prime_t \gets M^\prime_t - \mathcal{M}_{\floor{n/(\ell t)}}$
+        }
+    }
+}
+\end{algorithm}
+
+The time consumed by this extract is
+\eqn{\sum_{t=1}^b \left( 1 + \max\left( \ell_{max} - \ell_{min} , 0 \right) \right)}
+\eqn{= \sum_{t=1}^b \left( 1 + \max\left( \min\left( \isqrt{n/t} , \floordiv{n}{t} \right) - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right) \right)}
+\eqn{= b + \sum_{t=1}^b \max\left( \min\left( \isqrt{n/t} , \floordiv{n}{t} \right) - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right)}
+\eqn{= b + \sum_{t=1}^b \max\left( \min\left( \isqrt{n/t} , \floordiv{n}{t} \right) - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right)}
+We have $0 < t < n$, so $\sqrt{n/t} \leq n/t$.
+\eqn{= b + \sum_{t=1}^b \max\left( \isqrt{n/t} - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right)}
+By Lemma \ref{ouawrt4coi}, the first argument of the $\max$ function is negative.  (\todo When the analysis is done, ensure that $b \leq n^{1/3}$.  Otherwise, this lemma-application is invalid.)
+\eqn{= b}
+
+In the last batch, when $x=\isqrt{n}$, the relevant section of the algorithm amounts to
+
+\begin{algorithm}[H]
+\DontPrintSemicolon
+\caption{An extract from Algorithm \ref{Algo14}, with $x=\isqrt{n} \not\equiv 0 \pmod{b}$}
+\Begin{
+    $x \gets \isqrt{n}$
+    
+    $A \gets 1 + b \cdot \floor{x/b}$
+    
+    \For{$t=1$ \KwTo $b$}{
+        $\ell_{min} \gets 1 + \dfloordiv{n}{t \cdot (x+1)}$
+        
+        $\ell_{max} \gets \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot A} \right)$
+        
+        \For{$\ell=\ell_{min}$ \KwTo $\ell_{max}$}{
+            $M^\prime_t \gets M^\prime_t - \mathcal{M}_{\floor{n/(\ell t)}}$
+        }
+    }
+}
+\end{algorithm}
+
+The time consumed by this extract is
+\eqn{\sum_{t=1}^b \left( 1 + \max\left( \ell_{max} - \ell_{min} , 0 \right) \right)}
+\eqn{= b + \sum_{t=1}^b \max\left( \ell_{max} - \ell_{min} , 0 \right)}
+\eqn{= b + \sum_{t=1}^b \max\left( \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot A} \right) - 1 - \dfloordiv{n}{t \cdot (x+1)} , 0 \right)}
+\eqn{= b + \sum_{t=1}^b \max\left( \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} \right) - 1 - \dfloordiv{n}{t \cdot (\isqrt{n}+1)} , 0 \right)}
+We split off the $t=1$ term for special treatment:
+\tweqn{= b + \max\left( \min\left( \isqrt{n/1} , \dfloordiv{n}{1 \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} \right) - 1 - \dfloordiv{n}{1 \cdot (\isqrt{n}+1)} , 0 \right) + \sum_{t=2}^b \max\left( \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} \right) - 1 - \dfloordiv{n}{t \cdot (\isqrt{n}+1)} , 0 \right)}
+\tweqn{= b + \max\left( \min\left( \isqrt{n} , \dfloordiv{n}{1 + b \cdot \dfloordiv{\isqrt{n}}{b}} \right) - 1 - \dfloordiv{n}{\isqrt{n}+1} , 0 \right) + \sum_{t=2}^b \max\left( \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} \right) - 1 - \dfloordiv{n}{t \cdot (\isqrt{n}+1)} , 0 \right)}
+By hypothesis, we are working with $\isqrt{n} \not\equiv 0 \pmod{b}$, so $1 + b \cdot \floor{\isqrt{n}/b} \leq \isqrt{n}$.  Therefore, in the first $\min$ function, the first argument prevails.
+\tweqn{= b + \max\left( \isqrt{n} - 1 - \dfloordiv{n}{\isqrt{n}+1} , 0 \right) + \sum_{t=2}^b \max\left( \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} \right) - 1 - \dfloordiv{n}{t \cdot (\isqrt{n}+1)} , 0 \right)}
+In the first $\max$ function, the second argument prevails.
+\eqn{= b + \sum_{t=2}^b \max\left( \min\left( \isqrt{n/t} , \dfloordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} \right) - 1 - \dfloordiv{n}{t \cdot (\isqrt{n}+1)} , 0 \right)}
+By Lemma \ref{okiagfvwr}, in the $\min$ function, the second argument prevails.
+\eqn{= b + \sum_{t=2}^b \max\left( \floordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} - 1 - \floordiv{n}{t \cdot (\isqrt{n}+1)} , 0 \right)}
+\eqn{= \Theta\left( b + \int_2^b \max\left( \floordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} - 1 - \floordiv{n}{t \cdot (\isqrt{n}+1)} , 0 \right) dt \right)}
+\eqn{= \Theta\left( b + \int_2^b \max\left( \frac{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} - 1 - \frac{n}{t \cdot (\isqrt{n}+1)} , 0 \right) dt \right)}
+Let
+\eqn{U \defeq n \cdot \frac{\isqrt{n} - b \cdot \dfloordiv{\isqrt{n}}{b}}{\left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)\left(\isqrt{n}+1\right)}.}
+Then
+\eqn{= \Theta\left( b + \int_2^b \max\left( \frac{U}{t} - 1 , 0 \right) dt \right)}
+\eqn{< \Theta\left( b + \int_2^b \max\left( \frac{U}{t} , 0 \right) dt \right)}
+\eqn{< \Theta\left( b + U \ln(U) \right)}
+By Lemma \ref{lmmfanb}, this can be weakened to
+\eqn{= O(b + \sqrt{n} \ln(n)).}
+
+Recall that we are in the process of estimating the time devoted to line \ref{14-27}.  We have separated out the first and last batches for special treatment, and found them to consume
+\eqn{b + O(b + \sqrt{n} \ln(n))}
+\eqn{= O(\sqrt{n} \ln(n))}
+time.  We now turn our attention to those batches in which $b \mid x$ and $x \neq b$.  For those batches, we have $A = 1 + x - b$, so the time devoted to those batches is
+
+\eqn{\sum_{\substack{2b \leq x \leq \sqrt{n} \\ b \mid x}}\sum_{t=1}^b \left( 1 + \max\left( \min \left( \isqrt{n/t} , \floordiv{n}{t \cdot (1 + x - b)} \right)
+-
+\left( 1 + \floordiv{n}{t \cdot (x+1)} \right)
+, 0 \right) \right)}
+
+\eqn{\sum_{\substack{2b \leq x \leq \sqrt{n} \\ b \mid x}}\sum_{t=1}^b \left( 1 + \max\left( \min \left( \isqrt{n/t} , \floordiv{n}{t \cdot (1 + x - b)} \right)
+- 1
+- \floordiv{n}{t \cdot (x+1)}
+, 0 \right) \right)}
+
+\eqn{\sum_{\chi=2}^{\sqrt{n}/b} \sum_{t=1}^b \left( 1 + \max\left( \min \left( \isqrt{n/t} , \floordiv{n}{t \cdot (1 + b\chi - b)} \right)
+- 1
+- \floordiv{n}{t \cdot (b\chi + 1)}
+, 0 \right) \right)}
+
+\eqn{\Theta \left( \sum_{\chi=2}^{\sqrt{n}/b} \sum_{t=1}^b \left( 1 + \max\left( \min \left( \sqrt{n/t} , \frac{n}{t \cdot (1 + b\chi - b)} \right)
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) \right)
+\right)}
+
+\eqn{\Theta \left( \sqrt{n} + \sum_{\chi=2}^{\sqrt{n}/b} \sum_{t=1}^b \max\left( \min \left( \sqrt{n/t} , \frac{n}{t \cdot (1 + b\chi - b)} \right)
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right)
+\right)}
+
+\eqn{= \Theta \left( \sqrt{n} + \int_2^{\sqrt{n}/b} \int_1^b
+\max\left( \min \left( \sqrt{n/t} , \frac{n}{t \cdot (1 + b\chi - b)} \right)
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt \; d\chi
+\right)}
+
+By Lemma \ref{BigIntegral}, this is
+\eqn{= \Theta \left( \sqrt{n} + \frac{n}{b} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b) \right)\right)}
+
+\eqn{= \Theta \left( \frac{n}{b} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b) \right)\right)}
+
+Therefore the total time consumed in handling line \ref{14-27} is
+\neqn{\Theta \left( \frac{n}{b} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b) \right)\right) \label{14-27-time}}
+
+\todo b-n-chi / bianchi pun
+
+On each iteration through phase 2 in which line \ref{14-39} gets hit, it gets hit
+\eqn{\sum_{y=1}^b f(t,y)}
+times, where $f(t,y)$ is the number of integers $t$ that satisfy (\ref{cbafnlj}).
+
+We need to determine which values of $A$ and $B$ happen.  The $k$\textsuperscript{th} value of $x$ such that $M(x)$ gets saved during phase 2 is approximately
+\eqn{x_k \defeq \frac{n}{\sqrt{n} - k}.}
+We accumulate batches of size $b$, so a batch will be processed when $k \mid b$; the first batch has $k=b$ and the last batch will have $k \approx \sqrt{n} - \sqrt[3]{n}$.  The $j$\textsuperscript{th} batch will then have
+\eqn{A \approx \sqrt{n} - b \cdot (j-1) \qquadtext{and} B \approx \sqrt{n} - bj.}
+When processing the $j$\textsuperscript{th} batch, the bounds on $t$ are therefore approximately
+\eqn{2 \leq t \leq \sqrt{n/y} \quadtext{and} \sqrt{n} < \frac{n}{ty} \quadtext{and} \sqrt{n}-bj \leq ty \leq \sqrt{n}-b\cdot(j-1)}
+\eqn{2 \leq t \leq \sqrt{n/y} \quadtext{and} t < \frac{\sqrt{n}}{y} \quadtext{and} \frac{\sqrt{n}-bj}{y} \leq t \leq \frac{\sqrt{n}-bj}{y}+\frac{b}{y}}
+The second condition and the upper side of the first condition are both weaker than the upper side of the third condition.
+\eqn{2 \leq t \quadtext{and} \frac{\sqrt{n}-bj}{y} \leq t \leq \frac{\sqrt{n}-bj}{y}+\frac{b}{y}}
+Therefore
+\eqn{f(t,y) \approx \frac{\sqrt{n}-bj}{y}+\frac{b}{y} - \max\left(2, \frac{\sqrt{n}-bj}{y}\right),}
+so on an iteration through phase 2 in which line \ref{14-39} gets hit, it gets hit
+\eqn{\Theta\left(\sum_{y=1}^b \frac{\sqrt{n}-bj}{y}+\frac{b}{y} - \max\left(2, \frac{\sqrt{n}-bj}{y}\right)\right)}
+times.
+\eqn{= \Theta\left( \sum_{y=1}^b \frac{b}{y} \right)}
+\eqn{= \Theta\left( \integral{\frac{b}{y}}{y}{1}{b} \right)}
+\eqn{= \Theta\left( \eval{b\ln(\abs{y})}{y=1}{b} \right)}
+\eqn{= \Theta\left( b \ln(b) \right)}
+There are $\Theta(\sqrt{n}-\sqrt[3]{n})$ values of $x$ such that $M(x)$ gets saved during phase 2; since each batch has size $b$, there are
+\eqn{\Theta\left( \frac{\sqrt{n}-\sqrt[3]{n}}{b} \right)}
+batches.  The total time devoted to line \ref{14-39} across all iterations through phase 2 is therefore
+\eqn{\Theta\left( b \ln(b) \right) \cdot \Theta\left( \frac{\sqrt{n}-\sqrt[3]{n}}{b} \right)}
+\eqn{= \Theta\left( b \ln(b) \right) \cdot \Theta\left( \frac{\sqrt{n}}{b} \right)}
+\eqn{= \Theta\left( b \ln(b) \right) \cdot \Theta\left( \frac{\sqrt{n}}{b} \right)}
+\eqn{= \Theta\left( \sqrt{n} \ln(b) \right)}
+\neqn{= \Theta\left( \sqrt{n} \ln\left(\frac{n}{a}\right) \right). \label{14-39-time}}
+
+Line \ref{14-46} gets hit
+\eqn{\Theta\left( \sum_{y=1}^b \frac{n/y}{n/(b+1)} \right)}
+\eqn{= \Theta\left( \sum_{y=1}^b \frac{b+1}{y} \right)}
+\eqn{= \Theta\left( b \ln(b) \right)}
+\neqn{= \Theta\left( \frac{n}{a} \ln\left(\frac{n}{a}\right) \right) \label{14-46-time}}
+times.
+
+Combining (\ref{14-M-time}), (\ref{14-16-time}), (\ref{14-27-time}), (\ref{14-39-time}), and (\ref{14-46-time}), we see that the time complexity is
+\tweqn{\Theta( a \cdot \ln(\ln(a)) + \Theta\left(\frac{n}{\sqrt{a}}\right) + \Theta \left( \frac{n}{b} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b) \right)\right) + \Theta\left( \sqrt{n} \ln\left(\frac{n}{a}\right) \right) + \Theta\left( \frac{n}{a} \ln\left(\frac{n}{a}\right) \right)}
+
+\tweqn{= \Theta( a \cdot \ln(\ln(a)) + \Theta\left(\frac{n}{\sqrt{a}}\right) + \Theta \left( a \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(n \cdot a^{-1}) \right)\right) + \Theta\left( \sqrt{n} \ln\left(\frac{n}{a}\right) \right) + \Theta\left( \frac{n}{a} \ln\left(\frac{n}{a}\right) \right)}
+
+The sum of the first three terms is minimized by choosing $a = \softTheta(n^{2/3})$; the last two terms are then neglectable.  Let $c = a \cdot n^{-2/3}$; that is, it is $a$'s sub-power-law factor.  The time complexity is therefore
+
+\tweqn{= \Theta( c \cdot n^{2/3} \cdot \ln(\ln(c \cdot n^{2/3})) + \Theta\left(\frac{n}{\sqrt{c \cdot n^{2/3}}}\right) + \Theta \left( c \cdot n^{2/3} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(n \cdot (c \cdot n^{2/3})^{-1}) \right)\right)}
+
+\tweqn{= \Theta( c \cdot n^{2/3} \cdot \ln(\ln(c \cdot n^{2/3})) + \Theta\left(\frac{n^{2/3}}{\sqrt{c}}\right) + \Theta \left( c \cdot n^{2/3} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(n^{1/3} \cdot c^{-1}) \right)\right)}
+
+\tweqn{= \Theta( c \cdot n^{2/3} \cdot \ln(\ln(c \cdot n^{2/3})) + \Theta\left(\frac{n^{2/3}}{\sqrt{c}}\right) + \Theta \left( c \cdot n^{2/3} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \frac{\ln(8)}{3} \ln(n) - \ln(8) \ln(c) \right)\right)}
+
+\eqn{= \Theta( c \cdot n^{2/3} \cdot \ln(\ln(c \cdot n^{2/3})) + \Theta\left(\frac{n^{2/3}}{\sqrt{c}}\right) + \Theta \left( c \cdot n^{2/3} \cdot \left( \ln(4) + \ln(2)^2 - \ln(8) \ln(c) \right)\right)}
+
+\eqn{= \Theta( c \cdot n^{2/3} \cdot \ln(\ln(c \cdot n^{2/3})) + \Theta\left(\frac{n^{2/3}}{\sqrt{c}}\right) + \Theta \left( c \cdot n^{2/3} \cdot \ln\left( 4 \cdot 2^{\ln(2)} \cdot c^{-\ln(8)} \right)\right)}
+
+\eqn{= \Theta( c \cdot n^{2/3} \cdot \ln(\ln(c \cdot n^{2/3})) + \Theta\left(\frac{n^{2/3}}{\sqrt{c}}\right) + \Theta \left( c \cdot n^{2/3} \cdot \ln\left( 4 \cdot 2^{\ln(2)} \cdot c^{-\ln(8)} \right)\right)}
+
+\eqn{= \Theta( c \cdot n^{2/3} \cdot \ln(\ln(c \cdot n^{2/3})) + \Theta\left(\frac{n^{2/3}}{\sqrt{c}}\right) + \Theta \left( c \cdot n^{2/3} \cdot \ln\left( 2^{2+\ln(2)} \cdot c^{-\ln(8)} \right)\right)}
+
+This is optimized by choosing $c = (\ln(\ln(n)))^{-2/3}$: the first two terms each come out to
+\eqn{\Theta(n^{2/3} \cdot (\ln(\ln(n)))^{1/3}),}
+while the third term comes out to
+\eqn{\Theta\left( (\ln(\ln(n)))^{-2/3} \cdot n^{2/3} \cdot \ln\left(2^{2+\ln(2)} \cdot \left( (\ln(\ln(n)))^{-2/3} \right)^{-\ln(8)}\right) \right)}
+\eqn{ = \Theta\left( n^{2/3} \cdot (\ln(\ln(n)))^{-2/3} \cdot \ln\left(2^{2+\ln(2)} \cdot \left( (\ln(\ln(n)))^{-2/3} \right)^{-3\ln(2)}\right) \right)}
+\eqn{ = \Theta\left( n^{2/3} \cdot (\ln(\ln(n)))^{-2/3} \cdot \ln\left(2^{2+\ln(2)} \cdot (\ln(\ln(n)))^{2\ln(2)} \right) \right)}
+\eqn{ = \Theta\left( n^{2/3} \cdot (\ln(\ln(n)))^{-2/3} \cdot \ln\left(2^{2+\ln(2)} \cdot (\ln(\ln(n)))^{\ln(4)} \right) \right)}
+\eqn{ = \Theta\left( n^{2/3} \cdot (\ln(\ln(n)))^{-2/3} \cdot \left( \ln\left(2^{2+\ln(2)}\right) + \ln(4) \ln(\ln(\ln(n))) \right) \right)}
+\eqn{ = \Theta\left( n^{2/3} \cdot (\ln(\ln(n)))^{-2/3} \cdot \left( \ln(4) \ln(\ln(\ln(n))) \right) \right)}
+\eqn{ = \Theta\left( n^{2/3} \cdot (\ln(\ln(n)))^{-2/3} \cdot \ln(\ln(\ln(n))) \right).}
+
+\todo
 
 
 \section{Python code}
@@ -779,7 +1254,769 @@ Filename: \texttt{totientsumF.py}
 Filename: \texttt{totientsumG.py}
 %\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo11}.}]{code/totientsumG.py}
 
+Filename: \texttt{totientsumI.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo13}.}]{code/totientsumI.py}
 
+Filename: \texttt{totientsumJ.py}
+%\lstinputlisting[language=Python, caption={Computation of $\Phi(N)$ by Algorithm \ref{Algo14}.}]{code/totientsumJ.py}
+
+\section{Appendix}
+
+\begin{lemma} \label{lemma1}
+Let $n$ and $y$ be integers such that $1 \leq y \leq \sqrt{n}$.  Then
+\eqn{\floordiv{\floor{n/y}}{\isqrt{n}+1} \leq \isqrt{\frac{n}{y}}.}
+\end{lemma}
+\begin{proof}
+We begin with $\sqrt{n} \leq \isqrt{n} + 1$.  We can then weaken this to
+\eqn{\sqrt{n} \leq \isqrt{n}\sqrt{y} + \sqrt{y}.}
+Algebra then yields
+\eqn{\sqrt{\frac{n}{y}} \leq \isqrt{n} + 1}
+\eqn{\frac{\sqrt{n/y}}{\isqrt{n}+1} \leq 1}
+\eqn{\frac{n/y}{\isqrt{n}+1} \leq \sqrt{\frac{n}{y}}}
+\eqn{\frac{\floor{n/y}}{\isqrt{n}+1} \leq \sqrt{\frac{n}{y}}}
+\eqn{\floordiv{\floor{n/y}}{\isqrt{n}+1} \leq \isqrt{n/y},}
+as desired.
+\end{proof}
+
+\begin{lemma} \label{mfeqljk}
+For $1 \leq \chi \leq \sqrt{n}/b$ and large $n$,
+\eqn{\frac{bn}{(1+b\chi-b)(b\chi+1)} > b.}
+\end{lemma}
+\begin{proof}
+Since $\sqrt{n}/b > \chi$, we have
+\eqn{n > b^2 \chi^2.}
+For all but the smallest $n$, we will have $b > 2$; since we are working in the limit of large $n$, we can weaken this to
+\eqn{n > b^2 \chi^2 + 2b\chi + 1 - b^2\chi - b}
+\eqn{= (1 + b\chi)^2 - b \cdot (b\chi + 1)}
+\eqn{= (1 + b\chi - b) (b\chi + 1),}
+from which the conclusion follows immediately.
+\end{proof}
+
+\begin{lemma} \label{ouawrt4coi}
+Suppose that $1 \leq t \leq b \leq n^{1/3}$.  Then for sufficiently large $b$ and $n$,
+\eqn{\isqrt{n/t} \leq 1 + \floordiv{n}{t \cdot (b+1)}.}
+\end{lemma}
+\begin{proof}
+Consider the function
+\eqn{f(z) = \left( 1 + \frac{z}{b+1} \right)^2 - z.}
+This is a quadratic in $z$.  We evaluate it at four points: $z \in \set{1, 2, b^2/2, b^2}$.
+\eqn{f(1) = \left( 1 + \frac{1}{b+1} \right)^2 - 1 = \frac{2}{b+1} + \frac{1}{(b+1)^2} = \frac{2b + 3}{(b+1)^2} > 0}
+%\eqn{= \frac{2(b+1)+1}{(b+1)^2}}
+%\eqn{= \frac{2b+3}{(b+1)^2}}
+\eqn{f(2) = \left( 1 + \frac{2}{b+1} \right)^2 - 2 = -1 + \frac{4}{b+1} + \frac{4}{(b+1)^2} = \frac{-b^2 + 2b + 7}{(b+1)^2} < 0}
+%\eqn{= \frac{-(b+1)^2 + 4(b+1) + 4}{(b+1)^2}}
+%\eqn{= \frac{-b^2 - 2b - 1 + 4b + 4 + 4}{(b+1)^2}}
+%\eqn{= \frac{-b^2 + 2b + 7}{(b+1)^2}}
+\eqn{f(b^2/2) = \left( 1 + \frac{b^2/2}{b+1} \right)^2 - \frac{b^2}{2} = 1 + \frac{b^2}{b+1} + \frac{1}{4} \cdot \frac{b^4}{(b+1)^2} - \frac{b^2}{2} = \frac{-b^4 + 6b^2 + 8b + 4}{4 \cdot (b+1)^2} < 0}
+%\eqn{= \frac{4 \cdot (b+1)^2 + 4 \cdot b^2 \cdot (b+1) + b^4 - 2b^2 \cdot (b+1)^2}{4 \cdot (b+1)^2}}
+%\eqn{= \frac{(4b^2+8b+4) + (4b^3+4b^2) + b^4 - (2b^4 + 4b^3 + 2b^2)}{4 \cdot (b+1)^2}}
+%\eqn{= \frac{(4b^2+8b+4) + (4b^3+4b^2) - b^4 - 4b^3 - 2b^2}{4 \cdot (b+1)^2}}
+%\eqn{= \frac{(4b^2+8b+4) - b^4 + 2b^2}{4 \cdot (b+1)^2}}
+%\eqn{= \frac{-b^4 + 6b^2 + 8b + 4}{4 \cdot (b+1)^2}}
+%\eqn{= \frac{-b^4 + 6b^2 + 8b + 4}{4 \cdot (b+1)^2}}
+%\eqn{< 0}
+\eqn{f(b^2) = \left(1 + \frac{b^2}{b+1}\right)^2 - b^2 = 1 + \frac{2b^2}{b+1} + \frac{b^4}{(b+1)^2} - b^2 = \frac{2b^2 + 2b + 1}{(b+1)^2} > 0}
+%\eqn{= \frac{(b+1)^2 + 2b^2 \cdot (b+1) + b^4 - b^2 \cdot (b+1)^2}{(b+1)^2}}
+%\eqn{= \frac{(b^2+2b+1) + (2b^3+2b^2) + b^4 - (b^4+2b^3+b^2)}{(b+1)^2}}
+%\eqn{= \frac{2b^2 + 2b + 1}{(b+1)^2}}
+%\eqn{> 0}
+Therefore, for sufficiently large $b$, if $z \geq b^2$, then $f(z) > 0$.
+
+Now consider $f(n/t)$.  From the hypotheses of this lemma, we have $n/t \geq b^2$.  Therefore,
+\eqn{0 < f(n/t)}
+\eqn{0 \leq f(n/t)}
+\eqn{0 \leq \left( 1 + \frac{n/t}{b+1} \right)^2 - \frac{n}{t}}
+\eqn{\frac{n}{t} \leq \left( 1 + \frac{n}{t \cdot (b+1)} \right)^2}
+\eqn{\sqrt{n/t} \leq 1 + \frac{n}{t \cdot (b+1)}}
+\eqn{\isqrt{n/t} \leq 1 + \floordiv{n}{t \cdot (b+1)}}
+\end{proof}
+
+\begin{lemma} \label{okiagfvwr}
+Suppose that $2 \leq t$ and $b = o(\sqrt{n})$.  Then for sufficiently large $n$,
+\eqn{\isqrt{n/t} \geq \floordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)}.}
+\end{lemma}
+\begin{proof}
+Since $b = o(n^{1/2})$, we have
+\eqn{\isqrt{n} - b \geq \sqrt{\frac{n}{2}}}
+for sufficiently large $n$.  This can be weakened to
+\eqn{\isqrt{n} - (\isqrt{n} \% b) \geq \sqrt{\frac{n}{2}},}
+which is equivalent to
+\eqn{b \cdot \floordiv{\isqrt{n}}{b} \geq \sqrt{\frac{n}{2}},}
+which can be weakened to
+\eqn{1 + b \cdot \floordiv{\isqrt{n}}{b} \geq \sqrt{\frac{n}{2}}.}
+By hypothesis, $t \geq 2$, so we can weaken this to
+\eqn{1 + b \cdot \floordiv{\isqrt{n}}{b} \geq \sqrt{\frac{n}{t}},}
+which is equivalent to
+\eqn{1 \geq \frac{\sqrt{n/t}}{1 + b \cdot \dfloordiv{\isqrt{n}}{b}}}
+\eqn{\sqrt{n/t} \geq \frac{n/t}{1 + b \cdot \dfloordiv{\isqrt{n}}{b}}.}
+Applying the floor function to both sides then yields the desired result.
+\end{proof}
+
+\begin{lemma} \label{lmmfanb}
+$U \leq 2 \sqrt{n}$.
+\end{lemma}
+\begin{proof}
+Since $b = o(\sqrt{n})$, we have for sufficiently large $n$
+\eqn{n \leq 2 \cdot \left(1 + \isqrt{n}\right)^2 - 2b \cdot \left(\isqrt{n}+1\right)}
+\eqn{n \leq 2 \cdot \left(1 + \isqrt{n} - b\right)\left(\isqrt{n}+1\right),}
+which can be weakened to
+\eqn{n \leq 2 \cdot \left(1 + \isqrt{n} - (\isqrt{n} \% b)\right)\left(\isqrt{n}+1\right),}
+which is equivalent to
+\eqn{n \leq 2 \cdot \left(1 + b \cdot \floordiv{\isqrt{n}}{b}\right)\left(\isqrt{n}+1\right)}
+\eqn{n \cdot \frac{1}{\left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)\left(\isqrt{n}+1\right)} \leq 2}
+\eqn{n \cdot \frac{\sqrt{n}}{\left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)\left(\isqrt{n}+1\right)} \leq 2 \sqrt{n},}
+which can be weakened to
+\eqn{n \cdot \frac{\isqrt{n}}{\left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)\left(\isqrt{n}+1\right)} \leq 2 \sqrt{n},}
+which can be weakened to
+\eqn{n \cdot \frac{\isqrt{n} - b \cdot \dfloordiv{\isqrt{n}}{b}}{\left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)\left(\isqrt{n}+1\right)} \leq 2 \sqrt{n},}
+which is the desired result.
+\end{proof}
+
+\begin{lemma} \label{catalan3}
+For $k \geq 2$, $C_k > 3^k / 6$.
+\end{lemma}
+\begin{proof}
+We proceed by induction.  The base cases are $2 \leq k \leq 4$.  For the inductive step, we assume that
+\eqn{C_k > \frac{3^k}{6}}
+\eqn{C_k \cdot \frac{C_{k+1}}{C_{k}} > \frac{3^k}{6} \cdot \frac{C_{k+1}}{C_k}}
+\eqn{C_{k+1} > \frac{3^k}{6} \cdot \frac{ \dfrac{1}{k+2} \cdot \dfrac{(2k+2)!}{(k+1)!^2} }{ \dfrac{1}{k+1} \cdot \dfrac{(2k)!}{k!^2}}}
+\eqn{= \frac{3^k}{6} \cdot \frac{k+1}{k+2} \cdot \frac{k!^2}{(2k)!} \cdot \frac{(2k+2)!}{(k+1)!^2}}
+\eqn{= \frac{3^k}{6} \cdot \frac{k+1}{k+2} \cdot \frac{(2k+1)(2k+2)}{(k+1)^2}}
+\eqn{= \frac{3^k}{6} \cdot 2 \cdot \frac{2k+1}{k+2}}
+The quantity $(2k+1)/(k+2)$ equals $3/2$ at $k=4$, and increases from there.  Therefore
+\eqn{\geq \frac{3^k}{6} \cdot 3}
+\eqn{= \frac{3^{k+1}}{6},}
+which completes the induction.
+\end{proof}
+
+
+\begin{lemma} \label{BigIntegral}
+\eqn{\int_2^{\sqrt{n}/b} \int_1^b
+\max\left( \min \left( \sqrt{n/t} , \frac{n}{t \cdot (1 + b\chi - b)} \right)
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt \; d\chi}
+\eqn{= \Theta \left( \frac{n}{b} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b) \right)\right)
+}
+\end{lemma}
+\begin{proof}
+Let $T \defeq \dfrac{n}{(1+b\chi-b)^2}$.  This is the crossover point in the $\min$ function.  For lesser $t$, the first argument prevails, and the integral becomes
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \int_T^b
+\max\left( \min \left( \sqrt{n/t} , \frac{n}{t \cdot (1 + b\chi - b)} \right)
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt \\
+\displaystyle + \int_1^T
+\max\left( \min \left( \sqrt{n/t} , \frac{n}{t \cdot (1 + b\chi - b)} \right)
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \int_T^b
+\max\left( \frac{n}{t \cdot (1 + b\chi - b)}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt \\
+\displaystyle + \int_1^T
+\max\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \int_T^b
+\max\left( \frac{n \cdot (b\chi+1) - n \cdot (1+b\chi-b)}{t \cdot (1 + b\chi - b) \cdot (b\chi + 1)}
+- 1
+, 0 \right) dt \\
+\displaystyle + \int_1^T
+\max\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \int_T^b
+\max\left( n \cdot \frac{b\chi + 1 - 1 - b\chi + b}{t \cdot (1 + b\chi - b) \cdot (b\chi + 1)}
+- 1
+, 0 \right) dt \\
+\displaystyle + \int_1^T
+\max\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \int_T^b
+\max\left( \frac{bn}{(1 + b\chi - b) \cdot (b\chi + 1)} \cdot \frac{1}{t}
+- 1
+, 0 \right) dt \\
+\displaystyle + \int_1^T
+\max\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+By Lemma \ref{mfeqljk}, the $\max( ,0)$ can be dropped from the upper integral.
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \int_T^b
+\left( \frac{bn}{(1 + b\chi - b) \cdot (b\chi + 1)} \cdot \frac{1}{t}
+- 1
+\right) dt \\
+\displaystyle + \int_1^T
+\max\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \frac{bn \ln(b/T)}{(1 + b\chi - b) \cdot (b\chi + 1)} - b + T \\
+\displaystyle + \int_1^T
+\max\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+Let
+\eqn{S = \frac{n}{2} - \frac{n}{b\chi+1} - \sqrt{\left(\frac{n}{2}\right)^2 - \frac{n^2}{b\chi+1}}.}
+
+In the remaining $\max$ function, the first argument prevails above this point, yielding
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \frac{bn \ln(b/T)}{(1 + b\chi - b) \cdot (b\chi + 1)} - b + T \\
+\displaystyle + \int_S^T
+\max\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+, 0 \right) dt
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \frac{bn \ln(b/T)}{(1 + b\chi - b) \cdot (b\chi + 1)} - b + T \\
+\displaystyle + \int_S^T
+\left( \sqrt{n/t}
+- 1
+- \frac{n}{t \cdot (b\chi + 1)}
+\right) dt
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b}
+\begin{array}{c}
+\displaystyle \frac{bn \ln(b/T)}{(1 + b\chi - b) \cdot (b\chi + 1)} - b + T \\
+\displaystyle + 2\sqrt{n}(T^{1/2} - S^{1/2}) - (T - S) - \frac{n \ln(T/S)}{b\chi + 1}
+\end{array}
+d\chi
+}
+
+\eqn{= \int_2^{\sqrt{n}/b} \left(
+\frac{bn \ln(b/T)}{(1 + b\chi - b) \cdot (b\chi + 1)} - b + T + 2\sqrt{n}(T^{1/2} - S^{1/2}) - (T - S) - \frac{n \ln(T/S)}{b\chi + 1}
+\right) d\chi
+}
+
+Let $u=b\chi+1$.  Then $du=bd\chi$ and $(2,\sqrt{n}/b)$ becomes $(1+2b,1+\sqrt{n})$, and
+\eqn{T = \frac{n}{(u-b)^2} \qquadtext{and} \frac{S}{n} = \frac{1}{2} - \frac{1}{u} - \sqrt{\frac{1}{4} - \frac{1}{u}}.}
+
+\eqn{= \frac{1}{b} \cdot \int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{bn \ln(b/T)}{(u - b) \cdot u} - b + T + 2\sqrt{n}(T^{1/2} - S^{1/2}) - (T - S) - \frac{n \ln(T/S)}{u}
+\right) du
+}
+
+\eqn{= \frac{1}{b} \cdot \int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{bn \ln(b/T)}{(u - b) \cdot u} - b + 2\sqrt{nT} - 2\sqrt{nS} + S + \frac{n \ln(S/T)}{u}
+\right) du
+}
+
+\eqn{= \frac{1}{b} \cdot \int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{bn \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - b + \frac{2n}{u-b} - 2n\sqrt{\frac{S}{n}} + S + \frac{n \ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+}
+
+Observe that $\sqrt{\dfrac{S}{n}} = \dfrac{S}{n} + \dfrac{1}{u}$.
+
+\eqn{= \frac{1}{b} \cdot \int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{bn \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - b + \frac{2n}{u-b} - 2n\cdot\left(\frac{S}{n}+\frac{1}{u}\right) + S + \frac{n \ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+}
+
+\eqn{= \frac{1}{b} \cdot \int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{bn \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - b + \frac{2n}{u-b} - 2S - \frac{2n}{u} + S + \frac{n \ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+}
+
+\eqn{= \frac{1}{b} \cdot \int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{bn \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - b + \frac{2n}{u-b} - \frac{2n}{u} - S + \frac{n \ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+}
+
+\eqn{= \frac{n}{b} \cdot \int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{b \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - \frac{b}{n} + \frac{2}{u-b} - \frac{2}{u} - \frac{S}{n} + \frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+}
+
+\tweqn{= \frac{n}{b} \cdot \left(
+-\frac{b}{n}\left(1+\sqrt{n}-1-2b\right) + 2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\right) - 2\ln\left(\frac{1+\sqrt{n}}{1+2b}\right)
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{b \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - \frac{S}{n} + \frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+\right)}
+
+\tweqn{= \frac{n}{b} \cdot \left(
+\frac{b}{n}\left(2b-\sqrt{n}\right) + 2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right)
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{b \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - \frac{S}{n} + \frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right)
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{b \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} - \frac{S}{n} + \frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right)
+-
+\int_{1+2b}^{1+\sqrt{n}} \frac{S}{n} \; du
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{b \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} + \frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+\right)}
+
+By Lemma \ref{Snu5},
+\eqn{0 < \int_{1+2b}^{1+\sqrt{n}} \frac{S}{n} \; du < \int_{1+2b}^{1+\sqrt{n}} 2u^{-2} \; du = -2\eval{u^{-1}}{u=1+2b}{1+\sqrt{n}} = \frac{2}{1+2b} - \frac{2}{1+\sqrt{n}}.}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right)
+-
+O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{b \ln\left(\dfrac{b}{n}(u-b)^2\right)}{(u - b) \cdot u} + \frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\ln\left(\dfrac{b}{n}(u-b)^2\right) \left( \frac{1}{u-b} - \frac{1}{u} \right) + \frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u}
+\right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\left(\ln\left(\frac{b}{n}\right) + \ln(u-b)^2\right) \left( \frac{1}{u-b} - \frac{1}{u} \right)
++
+\frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u} \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{\ln(b/n)}{u-b} - \frac{\ln(b/n)}{u} + \frac{2\ln(u-b)}{u-b} - \frac{2\ln(u-b)}{u}
++
+\frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u} \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\ln\left(\frac{b}{n}\right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\right)
+-
+\ln\left(\frac{b}{n}\right) \ln\left(\frac{1+\sqrt{n}}{1+2b}\right)
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{2\ln(u-b)}{u-b} - \frac{2\ln(u-b)}{u}
++
+\frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u} \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+2\ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\ln\left(\frac{b}{n}\right) \ln\left(\frac{1+\sqrt{n}-b}{1+b} \cdot \frac{1+2b}{1+\sqrt{n}}\right)
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{2\ln(u-b)}{u-b} - \frac{2\ln(u-b)}{u}
++
+\frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u} \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 + \ln\left(\frac{b}{n}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{2\ln(u-b)}{u-b} - \frac{2\ln(u-b)}{u}
++
+\frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u} \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{2\ln(u-b)}{u-b} - \frac{2\ln(u-b)}{u}
++
+\frac{\ln\left(\dfrac{S}{n}(u-b)^2\right)}{u} \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{2\ln(u-b)}{u-b} - \frac{2\ln(u-b)}{u}
++
+\frac{\ln(S/n)}{u} + \frac{2\ln(u-b)}{u}
+\right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left(
+\frac{2\ln(u-b)}{u-b}
++
+\frac{\ln(S/n)}{u}
+\right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left( \frac{2\ln(u-b)}{u-b} - \frac{\ln(u^2)}{u} + \frac{\ln(u^2)}{u} + \frac{1}{u} \cdot \ln(S/n) \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+\int_{1+2b}^{1+\sqrt{n}} \left( \frac{2\ln(u-b)}{u-b} - \frac{2\ln(u)}{u} + \frac{1}{u} \cdot \ln( u^2 \cdot S/n) \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+2\int_{1+2b}^{1+\sqrt{n}} \left( \frac{\ln(u-b)}{u-b} - \frac{\ln(u)}{u} \right) du
++
+\int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( u^2 \cdot S/n \right) \right) du
+\right)}
+
+By Lemma \ref{keysmash}, we have
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1})
++
+2\int_{1+2b}^{1+\sqrt{n}} \left( \frac{\ln(u-b)}{u-b} - \frac{\ln(u)}{u} \right) du
++
+O(n^{-1/2})
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1}) + O(n^{-1/2})
++
+2\int_{1+2b}^{1+\sqrt{n}} \left( \frac{\ln(u-b)}{u-b} - \frac{\ln(u)}{u} \right) du
+\right)}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+b}\cdot\frac{1+2b}{1+\sqrt{n}}\right) - O(b^{-1}) + O(n^{-1/2})
++
+\left(\ln(1+\sqrt{n}-b)\right)^2 - \left(\ln(1+b)\right)^2 - \left(\ln(1+\sqrt{n})\right)^2 + \left(\ln(1+2b)\right)^2
+\right)
+}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+\sqrt{n}}\cdot\frac{1+2b}{1+b}\right) - O(b^{-1}) + O(n^{-1/2})
++
+\left(\ln(1+\sqrt{n}-b)\right)^2 - \left(\ln(1+b)\right)^2 - \left(\ln(1+\sqrt{n})\right)^2 + \left(\ln(1+2b)\right)^2
+\right)
+}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+\sqrt{n}}\cdot\frac{1+2b}{1+b}\right) - O(b^{-1}) + O(n^{-1/2})
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(\frac{1+\sqrt{n}-b}{1+\sqrt{n}}\right)
++
+\ln\left((1+2b)(1+b)\right) \ln\left(\frac{1+2b}{1+b}\right)
+\right)
+}
+
+\tweqn{= 2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+\sqrt{n}}\cdot\frac{1+2b}{1+b}\right) - O(b^{-1}) + O(n^{-1/2})
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
++
+\ln\left((1+2b)(1+b)\right) \ln\left(\frac{1+2b}{1+b}\right)
+\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(\frac{1+\sqrt{n}-b}{1+\sqrt{n}} \cdot 2\right) - O(b^{-1}) + O(n^{-1/2})
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
++
+\ln\left((1+2b)(1+b)\right) \ln(2)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln\left(2 - \frac{2b}{1+\sqrt{n}}\right) - O(b^{-1}) + O(n^{-1/2})
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
++
+\ln\left((1+2b)(1+b)\right) \ln(2)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln(2)
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
++
+\ln\left((1+2b)(1+b)\right) \ln(2)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln(2)
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
++
+\ln\left(2b^2\right) \ln(2)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\left( 2 - \ln\left(\frac{n}{b}\right) \right) \ln(2)
++
+\ln\left(2b^2\right) \ln(2)
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\ln(4) - \ln(2) \ln\left(\frac{n}{b}\right)
++
+\ln(2)^2 + 2\ln(2)\ln(b)
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\ln(4) + \ln(2)^2 - \ln(2) \ln(n) + 3\ln(2)\ln(b)
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b)
++
+\ln\left((1+\sqrt{n}-b)(1+\sqrt{n})\right) \ln\left(1-\frac{b}{1+\sqrt{n}}\right)
+\right)\right)
+}
+
+\tweqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b)
++
+\ln\left((\sqrt{n}-b)(\sqrt{n})\right) \ln\left(1-\frac{b}{\sqrt{n}}\right)
+\right)\right)
+}
+
+\eqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b)
++
+\ln\left((\sqrt{n})(\sqrt{n})\right) \ln\left(1-\frac{b}{\sqrt{n}}\right)
+\right)\right)
+}
+
+\eqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b)
++
+\ln(n) \ln\left(1-\frac{b}{\sqrt{n}}\right)
+\right)\right)
+}
+
+\eqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left(
+\ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b)
++
+\ln(n) \cdot \frac{-b}{\sqrt{n}}
+\right)\right)
+}
+
+\eqn{= \Theta\left(2b - \sqrt{n} + \frac{n}{b} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b) \right)\right)
+}
+
+\eqn{= \Theta\left(\frac{n}{b} \cdot \left( \ln(4) + \ln(2)^2 - \ln(2) \ln(n) + \ln(8)\ln(b) \right)\right),
+}
+as desired.
+\end{proof}
+
+\begin{lemma} \label{keysmash}
+\eqn{ 0 <
+\int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( u^2 \cdot \frac{S}{n} \right) \right) du
+<
+\frac{31}{\sqrt{n}}.
+}
+\end{lemma}
+\begin{proof}
+Recall that
+\eqn{\frac{S}{n} = \sum_{k=2}^\infty \frac{C_{k-1}}{u^k},}
+and observe that $S/n > u^{-2}$.  Then
+\eqn{ 0 <
+\int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( u^2 \cdot \frac{S}{n} \right) \right) du
+<
+\int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( u^2 \cdot \sum_{k=2}^\infty \frac{C_{k-1}}{u^k}\right) \right) du
+}
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( \sum_{k=2}^\infty \frac{C_{k-1}}{u^{k-2}}\right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( \sum_{k=0}^\infty \frac{C_{k+1}}{u^k}\right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( C_1 + \sum_{k=1}^\infty \frac{C_{k+1}}{u^k}\right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( 1 + \sum_{k=1}^\infty \frac{C_{k+1}}{u^k}\right) \right) du }
+
+\eqn{ < \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( 1 + \sum_{k=1}^\infty \frac{4^{k+1}}{u^k}\right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( 1 + 4 \sum_{k=1}^\infty (4/u)^k \right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( 1 + 4 \cdot \frac{4/u}{1-4/u} \right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \ln \left( 1 + \frac{16}{u-4} \right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \sum_{k=1}^\infty \left( \frac{(-1)^{k+1}}{k} \cdot \left(\frac{16}{u-4}\right)^k \right) \right) du }
+
+\eqn{ = \int_{1+2b}^{1+\sqrt{n}} \sum_{k=1}^\infty \left( \frac{(-1)^{k+1}}{ku} \cdot \left(\frac{16}{u-4}\right)^k \right) du }
+
+We have absolute convergence, so
+
+\eqn{ = \sum_{k=1}^\infty \frac{(-1)^{k+1}}{k} \cdot \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \left(\frac{16}{u-4}\right)^k \right) du }
+
+\eqn{ = \sum_{k=1}^\infty \frac{16^k}{-k} \cdot \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \frac{1}{(u-4)^k} \right) du }
+
+\eqn{ < \sum_{k=1}^\infty \frac{16^k}{-k} \cdot \int_{1+2b}^{1+\sqrt{n}} \left( \frac{1}{u} \cdot \frac{1}{(u/2)^k} \right) du }
+
+\eqn{ = \sum_{k=1}^\infty \frac{32^k}{-k} \cdot \int_{1+2b}^{1+\sqrt{n}} u^{-k-1} \; du }
+
+\eqn{ = \sum_{k=1}^\infty \frac{32^k}{k^2} \cdot \eval{u^{-k}}{u=1+2b}{1+\sqrt{n}} }
+
+\eqn{ = \sum_{k=1}^\infty \frac{32^k}{k^2} \cdot \left(\frac{1}{(1+\sqrt{n})^k} - \frac{1}{(1+2b)^k}\right) }
+
+\eqn{ < \sum_{k=1}^\infty \frac{1}{k^2} \cdot \left(\frac{32}{1+\sqrt{n}}\right)^k }
+
+\eqn{ < \sum_{k=1}^\infty \left(\frac{32}{1+\sqrt{n}}\right)^k }
+
+\eqn{ = \frac{32/(1+\sqrt{n})}{1 - 32/(1+\sqrt{n})}}
+
+\eqn{ = \frac{32}{1 + \sqrt{n} - 32}}
+
+\eqn{ = \frac{32}{\sqrt{n} - 31}}
+
+\eqn{ < \frac{31}{\sqrt{n}},}
+as desired.
+\end{proof}
+
+\begin{lemma} \label{Snu5}
+For $u > 5$, $\disp 0 < \frac{1}{2} - \frac{1}{u} - \sqrt{\frac{1}{4} - \frac{1}{u}} < \frac{2}{u^2}$.
+\end{lemma}
+\begin{proof}
+\eqn{\frac{16}{u^2} + \frac{16}{u} < 4}
+\eqn{u^2 + 4 + \frac{16}{u^2} - 4u - 8 + \frac{16}{u} < u^2 - 4u}
+\eqn{u - 2 - \frac{4}{u} < \sqrt{u^2 - 4u}}
+\eqn{u - 2 - \sqrt{u^2 - 4u} < \frac{4}{u}}
+\eqn{0 < u - 2 - \sqrt{u^2 - 4u} < \frac{4}{u}}
+\eqn{0 < \frac{1}{2} - \frac{1}{u} - \sqrt{\frac{1}{4} - \frac{1}{u}} < \frac{2}{u^2}}
+\end{proof}
+
+\begin{lemma} \label{sqrtapprox}
+$\disp \lim_{u\rightarrow\infty} u^4 \cdot \left( \frac{1}{2} - \frac{1}{u} - \sqrt{\frac{1}{4}-\frac{1}{u}} - \frac{1}{u\cdot(u-2)} \right) = 1$.
+\end{lemma}
+\begin{proof}
+\eqn{\lim_{u\rightarrow\infty} u^4 \cdot \left( \frac{1}{2} - \frac{1}{u} - \sqrt{\frac{1}{4}-\frac{1}{u}} - \frac{1}{u\cdot(u-2)} \right) = \lim_{x\rightarrow0^+} x^{-4} \cdot \left( \frac{1}{2} - x - \sqrt{\frac{1}{4}-x} - \frac{1}{x^{-1}\cdot(x^{-1}-2)} \right)}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{\dfrac{1}{2} - x - \sqrt{\dfrac{1}{4}-x} - \dfrac{x^2}{1-2x}}{x^4}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{1 - 2x - \sqrt{1-4x} - \dfrac{2x^2}{1-2x}}{2x^4}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{1 - 2x - \sqrt{1-4x} + \left(x + \frac{1}{2} - \frac{1/2}{1-2x}\right)}{2x^4}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{\frac{3}{2} - x - \sqrt{1-4x} + \frac{1/2}{2x-1}}{2x^4}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{3 - 2x - 2\sqrt{1-4x} + (2x-1)^{-1}}{4x^4}}
+L'H\^{o}pital's rule yields
+\eqn{ = \lim_{x\rightarrow0^+} \frac{0 - 2 - 2\dfrac{-4}{2\sqrt{1-4x}} + (-1)(2x-1)^{-2}(2)}{16x^3}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{-2 + 4(1-4x)^{-1/2} - 2(2x-1)^{-2}}{16x^3}}
+L'H\^{o}pital's rule yields
+\eqn{ = \lim_{x\rightarrow0^+} \frac{0 + 4(-1/2)(1-4x)^{-3/2}(-4) - 2(-2)(2x-1)^{-3}(2)}{48x^2}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{8(1-4x)^{-3/2} + 8(2x-1)^{-3}}{48x^2}}
+L'H\^{o}pital's rule yields
+\eqn{ = \lim_{x\rightarrow0^+} \frac{8(-3/2)(1-4x)^{-5/2}(-4) + 8(-3)(2x-1)^{-4}(2)}{96x}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{48(1-4x)^{-5/2} - 48(2x-1)^{-4}}{96x}}
+L'H\^{o}pital's rule yields
+\eqn{ = \lim_{x\rightarrow0^+} \frac{48(-5/2)(1-4x)^{-7/2}(-4) - 48(-4)(2x-1)^{-5}(2)}{96}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{480(1-4x)^{-7/2} + 384(2x-1)^{-5}}{96}}
+\eqn{ = \frac{480(1-4\cdot0)^{-7/2} + 384(2\cdot0-1)^{-5}}{96}}
+\eqn{ = 1}
+\end{proof}
+
+\begin{lemma} \label{sqrtapprox2}
+$\disp \lim_{u\rightarrow\infty} u^3 \cdot \left( \frac{1}{2} - \frac{1}{u} - \sqrt{\frac{1}{4}-\frac{1}{u}} - \frac{1}{u^2} \right) = 2$.
+\end{lemma}
+\begin{proof}
+\eqn{\lim_{u\rightarrow\infty} u^3 \cdot \left( \frac{1}{2} - \frac{1}{u} - \sqrt{\frac{1}{4}-\frac{1}{u}} - \frac{1}{u^2} \right) = \lim_{x\rightarrow0^+} x^{-3} \cdot \left( \frac{1}{2} - x - \sqrt{\frac{1}{4}-x} - x^2 \right)}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{\dfrac{1}{2} - x - \sqrt{\dfrac{1}{4}-x} - x^2}{x^3}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{1 - 2x - (1-4x)^{1/2} - 2x^2}{2x^3}}
+L'H\^{o}pital's rule yields
+\eqn{ = \lim_{x\rightarrow0^+} \frac{0 - 2 - (1/2)(1-4x)^{-1/2}(-4) - 4x}{6x^2}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{-2 + 2(1-4x)^{-1/2} - 4x}{6x^2}}
+L'H\^{o}pital's rule yields
+\eqn{ = \lim_{x\rightarrow0^+} \frac{0 + 2(-1/2)(1-4x)^{-3/2}(-4) - 4}{12x}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{4(1-4x)^{-3/2} - 4}{12x}}
+L'H\^{o}pital's rule yields
+\eqn{ = \lim_{x\rightarrow0^+} \frac{4(-3/2)(1-4x)^{-5/2}(-4) - 0}{12}}
+\eqn{ = \lim_{x\rightarrow0^+} \frac{24(1-4x)^{-5/2}}{12}}
+\eqn{ = 2}
+\end{proof}
 
 \nocite{*}
 

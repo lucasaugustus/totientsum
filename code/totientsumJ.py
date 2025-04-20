@@ -3,14 +3,15 @@
 from utils import *
 from time import time
 from math import log2, log10
+from itertools import count
 
-def totientsum_G(n):
+def totientsum_J(n):
     if n <= 10: return 0 if n < 0 else (0,1,2,4,6,10,12,18,22,28,32)[n]
     
     a = introot(n**2, 3)
     b = n // a
     nr = isqrt(n)
-    Mover = [0] * (n//nr + 1)  # Mover[n//x] will store Mertens(x) for large x.
+    Mover = [0] * (b + 1)  # Mover[n//x] will store Mertens(x) for large x.
     Mblock = {}
     
     mert = 0
@@ -52,27 +53,39 @@ def totientsum_G(n):
                 Mblock = {}
         
         elif x == chi:
-            if v != b: Mover[v] = mert
+            if v != b:
+                if len(Mblock) == 0: A = v
+                Mblock[v] = mert
+                B = v
             s -= 1
             chi = n // s
         
         if x == a: Z = mert * (b * (b+1) // 2)
+        
+        if (x == a and len(Mblock) > 0) or (x > nr and len(Mblock) == b):
+            for y in range(1, b+1):
+                tmin = 2
+                tmax = isqrt(n//y)
+                for t in range(tmin, tmax+1):
+                    nty = n // (t*y)
+                    if nr < nty:
+                        if B <= n // nty <= A:
+                            Mover[y] -= Mblock[t*y]
+                    else: break
+            Mblock = {}
     
     for y in range(b, 0, -1):
         v = n // y
         vr = isqrt(v)
         Mv = 0
-        for x in range(2, vr+1):
-            vx = v // x
-            if vx > nr: Mv -= Mover[n//vx]
+        for x in count(2):
+            if n / (b+1) >= v // x: break
+            Mv -= Mover[n//(v//x)]
         # Mv is now Mertens(v).
         Mover[y] += Mv
         Y += y * Mover[y]
     
     return X + Y - Z
-
-
-
 
 
 
@@ -102,14 +115,28 @@ if __name__ == "__main__":
     from totientsumD import totientsum_D
     from totientsumE import totientsum_E
     from totientsumF import totientsum_F
+    from totientsumG import totientsum_G
+    from totientsumH import totientsum_H
+    from totientsumI import totientsum_I
     
     methods = (totientsum, \
                #totientsum_C, \
-               totientsum_D, \
-               totientsum_E, \
-               #totientsum_F, \
-               totientsum_G, \
+               #totientsum_D, \
+               #totientsum_E, \
+               #totientsum_F, \     # slow
+               #totientsum_G, \
+               #totientsum_H, \     # slow
+               totientsum_I, \
+               totientsum_J, \
               )
+    
+    if len(argv) >= 2 and argv[1].isdecimal():
+        n = int(argv[1])
+        print(n)
+        m = methods[-1]
+        print(m.__name__)
+        print(m(n))
+        exit()
     
     if "testlow" in argv:
         DEBUG = False
@@ -158,8 +185,6 @@ if __name__ == "__main__":
         
         for a in answers: print(a)
         assert len(set(answers)) == 1
-    
-    if len(argv) > 1:
-        print(totientsum_G(int(argv[1])))
+
 
 
