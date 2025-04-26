@@ -5,12 +5,17 @@ from time import time
 from math import log2, log10
 from itertools import count
 
-def totientsum_K(n):
+def totientsumM_K(n):
     if n <= 10: return 0 if n < 0 else (0,1,2,4,6,10,12,18,22,28,32)[n]
     
-    a = introot(n**2, 3)
+    a = introot(int(n**2 / log(log(n))), 3)
+    #a = introot(n**2, 3)
     b = n // a
     nr = isqrt(n)
+    if verbose:
+        print("      b:", b)
+        print("sqrt(n):", nr)
+        print("      a:", a)
     Mover = [0] * (b + 1)  # Mover[n//x] will store Mertens(x) for large x.
     Mblock = []
     
@@ -24,6 +29,7 @@ def totientsum_K(n):
     xp = isqrt(n//d)
     
     for (x, mu) in enumerate(mobiussieve(a+1), start=1):
+        #if x == 100: exit()
         v = n // x
         mert += mu
         X += mu * (v * (v+1) // 2)
@@ -31,9 +37,16 @@ def totientsum_K(n):
         if x <= nr:
             Mblock.append(mert)
             
-            if x > 1:
-                for y in range(1, min(b, n//x**2) + 1):
-                    Mover[y] -= mu * (n // (y*x))
+            if x > 1 and mu != 0:
+                if verbose:
+                    if x % b == 0 or (n//x**2 > b // 100):
+                        print("\b"*80, "       ", x, "%f%%" % (100*x/a), end='    ', flush=True)
+                if mu > 0:
+                    for y in range(1, min(b, n//x**2) + 1):
+                        Mover[y] -= v // y
+                else:
+                    for y in range(1, min(b, n//x**2) + 1):
+                        Mover[y] += v // y
             
             while x == xp:
                 Mover[d] += 1 - (n//d) + x * mert
@@ -62,6 +75,8 @@ def totientsum_K(n):
         if x == a: Z = mert * (b * (b+1) // 2)
         
         if (x == a and len(Mblock) > 0) or (x > nr and len(Mblock) == b):
+            if verbose:
+                print("\b"*80, "       ", x, "%f%%" % (100*x/a), end='    ', flush=True)
             for y in range(1, b+1):
                 tmin = 2
                 tmax = isqrt(n//y)
@@ -73,23 +88,20 @@ def totientsum_K(n):
                     else: break
             Mblock.clear()
     
-    temp = 0
+    if verbose: print()
+    
     for y in range(b, 0, -1):
         v = n // y
         vr = isqrt(v)
         Mv = 0
         for x in count(2):
-            if n / (b+1) >= v // x: break
+            if n >= (b+1) * (v//x): break
             Mv -= Mover[n//(v//x)]
-            temp += 1
         # Mv is now Mertens(v).
         Mover[y] += Mv
         Y += y * Mover[y]
-    print("\t", temp)
     
     return X + Y - Z
-
-
 
 
 
@@ -113,26 +125,20 @@ if __name__ == "__main__":
     from random import randrange
     from itertools import chain
     from labmath3 import totientsum, totient
-    from totientsumC import totientsum_C
-    from totientsumD import totientsum_D
-    from totientsumE import totientsum_E
-    from totientsumF import totientsum_F
-    from totientsumG import totientsum_G
-    from totientsumH import totientsum_H
-    from totientsumI import totientsum_I
-    from totientsumJ import totientsum_J
+    from totientsumM_C import totientsumM_C
+    from totientsumM_D import totientsumM_D
+    from totientsumM_E import totientsumM_E
+    from totientsumM_F import totientsumM_F
+    from totientsumM_G import totientsumM_G
+    from totientsumM_H import totientsumM_H
+    from totientsumM_I import totientsumM_I
+    from totientsumM_J import totientsumM_J
     
     methods = (totientsum, \
-               #totientsum_C, \
-               #totientsum_D, \
-               #totientsum_E, \
-               #totientsum_F, \     # slow
-               #totientsum_G, \
-               #totientsum_H, \     # slow
-               #totientsum_I, \
-               #totientsum_J, \
-               totientsum_K, \
+               totientsumM_K, \
               )
+    
+    verbose = True
     
     if len(argv) >= 2 and argv[1].isdecimal():
         n = int(argv[1])
@@ -143,7 +149,6 @@ if __name__ == "__main__":
         exit()
     
     if "testlow" in argv:
-        DEBUG = False
         verbose = False
         real_s = 0
         for n in range(1, int(argv[2])):
@@ -154,8 +159,6 @@ if __name__ == "__main__":
             assert real_s == test_s
         print()
         exit()
-    
-    verbose = True
     
     if "DEBUG" in argv:
         args = [x for x in argv if x != "DEBUG"]

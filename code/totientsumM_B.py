@@ -3,7 +3,7 @@
 from utils import *
 
 
-def totientsum_B(n):
+def totientsumM_B(n):
     """
     This algorithm is derived by using the Dirichlet hyperbola method on phi = Id * mu.
     The time complexity is O(n^(3/4))-ish: This is due to our use of the Deleglise-Rivat algorithm for computing the
@@ -30,6 +30,6 @@ def totientsum_B(n):
 
 if __name__ == "__main__":
     from sys import argv
-    print(totientsum_B(int(argv[1])))
+    print(totientsumM_B(int(argv[1])))
 
 

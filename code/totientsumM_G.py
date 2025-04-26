@@ -4,7 +4,7 @@ from utils import *
 from time import time
 from math import log2, log10
 
-def totientsum_G(n):
+def totientsumM_G(n):
     if n <= 10: return 0 if n < 0 else (0,1,2,4,6,10,12,18,22,28,32)[n]
     
     a = introot(n**2, 3)
@@ -74,92 +74,8 @@ def totientsum_G(n):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
     from sys import argv
-    from random import randrange
-    from itertools import chain
-    from labmath3 import totientsum, totient
-    from totientsumC import totientsum_C
-    from totientsumD import totientsum_D
-    from totientsumE import totientsum_E
-    from totientsumF import totientsum_F
-    
-    methods = (totientsum, \
-               #totientsum_C, \
-               totientsum_D, \
-               totientsum_E, \
-               #totientsum_F, \
-               totientsum_G, \
-              )
-    
-    if "testlow" in argv:
-        DEBUG = False
-        verbose = False
-        real_s = 0
-        for n in range(1, int(argv[2])):
-            t = totient(n)
-            real_s += t
-            test_s = methods[-1](n)
-            print('\b'*42, n, real_s, test_s, end='', flush=True)
-            assert real_s == test_s
-        print()
-        exit()
-    
-    verbose = True
-    
-    if "DEBUG" in argv:
-        args = [x for x in argv if x != "DEBUG"]
-        DEBUG = True
-    else:
-        args = argv
-        DEBUG = False
-    
-    numbers = (2**30, 2**33, 2**34, 2**33 * 3, 10**10, 10**11)
-    randos = [randrange(10**8, 10**10) for _ in range(5)]
-    
-    for n in chain(randos, numbers) if len(args) == 1 else [int(args[1])]:
-        print()
-        print()
-        print()
-        print()
-        print("N ==", n)
-        print()
-        print()
-        answers = []
-        for m in methods:
-            print(m.__name__)
-            print()
-            checkpoint = time()
-            A = m(n)
-            print("\t", A)
-            print(time() - checkpoint)
-            answers.append(A)
-            print()
-            print()
-        
-        for a in answers: print(a)
-        assert len(set(answers)) == 1
-    
-    if len(argv) > 1:
-        print(totientsum_G(int(argv[1])))
+    print(totientsumM_C(int(argv[1])))
 
 
