@@ -8,8 +8,7 @@ from itertools import count
 def totientsumM_K(n):
     if n <= 10: return 0 if n < 0 else (0,1,2,4,6,10,12,18,22,28,32)[n]
     
-    a = introot(int(n**2 / log(log(n))), 3)
-    #a = introot(n**2, 3)
+    a = introot(int((n / log(log(n)))**2), 3)
     b = n // a
     nr = isqrt(n)
     if verbose:
@@ -30,7 +29,7 @@ def totientsumM_K(n):
     
     for (x, mu) in enumerate(mobiussieve(a+1), start=1):
         #if x == 100: exit()
-        v = n // x
+        v = int(str(n // x))    # The int(str( ... )) pushes us back down into the 64-bit data types, when applicable.
         mert += mu
         X += mu * (v * (v+1) // 2)
         
@@ -39,13 +38,13 @@ def totientsumM_K(n):
             
             if x > 1 and mu != 0:
                 if verbose:
-                    if x % b == 0 or (n//x**2 > b // 100):
+                    if x % b == 0 or (v//x > b // 100):
                         print("\b"*80, "       ", x, "%f%%" % (100*x/a), end='    ', flush=True)
                 if mu > 0:
-                    for y in range(1, min(b, n//x**2) + 1):
+                    for y in range(1, min(b, v//x) + 1):
                         Mover[y] -= v // y
                 else:
-                    for y in range(1, min(b, n//x**2) + 1):
+                    for y in range(1, min(b, v//x) + 1):
                         Mover[y] += v // y
             
             while x == xp:
@@ -56,10 +55,12 @@ def totientsumM_K(n):
             if x % b == 0 or x == nr:
                 A = 1 + (b * (x//b) if x % b != 0 else (x - b))
                 for t in range(1, b+1):
+                    if x // b < 10: print("\b"*80, "       ", x//b, t, "%f%%" % (100*x/a), end='    ', flush=True)
+                    nt = n // t
                     lmin = 1 + n // (t * (x+1))
                     lmax = min(isqrt(n//t), n // (t * A))
                     for l in range(lmin, lmax + 1):
-                        k = n // (l*t)
+                        k = nt // l
                         assert A <= k <= x
                         Mover[t] -= Mblock[k - A]
                 Mblock.clear()
