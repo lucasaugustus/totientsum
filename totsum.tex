@@ -7,10 +7,6 @@
 \usepackage[style=numeric,backref=true,backrefstyle=none,abbreviate=false,urldate=iso,seconds=true]{biblatex}
 \usepackage{csquotes}
 \usepackage{amssymb,amsmath,amsthm}
-\usepackage{graphicx}
-\usepackage{tikz}
-\usepackage{tikzscale}
-\usepackage{pgfplots} \pgfplotsset{compat=1.15}
 \usepackage{url}
 \usepackage{multicol}
 \usepackage[yyyymmdd,hhmmss]{datetime}
@@ -51,12 +47,7 @@
 
 \allowdisplaybreaks[4]
 
-\def\grabtimezone #1#2#3#4#5#6#7#8#9{\grabtimezoneB}
-\def\grabtimezoneB #1#2#3#4#5#6#7{\grabtimezoneC}
-\def\grabtimezoneC #1#2'#3'{$#1$#2:#3}
-\newcommand{\timezone}[0]{UTC\expandafter \grabtimezone\pdfcreationdate}
 \newcommand{\currentdate}{\the\year--\twodigit{\the\month}--\twodigit{\the\day}}
-\newcommand{\currentdatetime}{\currentdate\ / \currenttime}%\ \timezone}
 
 \title{Computation of the Totient Summatory Function}
 \author{Lucas Augustus Brown \orcidlink{0000-0002-6000-3735}}
@@ -252,7 +243,7 @@ has been computed out to $\Phi(10^{18})=303963550927013314319686824781290348$ (\
 
 The contribution of this paper is to modify one such algorithm \cite[\texttt{totientSummatoryFast1}]{griff2023} to use $\softTheta(n^{1/3})$ space, enabling the computation of
 \eqn{\Phi(10^{19}) = 30396355092701331435065976498046398788}
-in 9 days and \todo gigabytes.
+in less than 9 days and 7 gigabytes.
 
 \subsection{Conventions}
 
@@ -266,7 +257,17 @@ The letter $\delta$ denotes the identity function for Dirichlet convolution: $\d
 
 The reported time and space complexities count the number of arithmetic operations used and the number of integers stored, not bit operations and bits stored.
 
-\section{Existing algorithms}
+\subsection{Overview of the paper}
+
+\begin{itemize}
+\item In Section \ref{ExistingAlgorithms}, we review some existing algorithms.
+\item In Section \ref{SpaceReduction}, we modify one such algorithm to reduce its space complexity from $\Theta(n^{1/2})$ to $\softTheta(n^{1/3})$, culminating in Algorithm \ref{Algo13}.
+\item In Section \ref{Analysis}, we analyze Algorithm \ref{Algo13}, concluding in Theorem \ref{Algo13time} that, with its optimal parameter selection, it takes $\Theta\left( (n / \ln(\ln(n)))^{2/3} \right)$ time and $\Theta\left(n^{1/3} \cdot (\ln(\ln(n)))^{2/3} \right)$ space.
+\item In Section \ref{ComputationalResults}, we present the results of running Algorithm \ref{Algo13} on various inputs.
+\item Finally, Section \ref{SupportingLemmas} contains some supporting lemmas.
+\end{itemize}
+
+\section{Existing algorithms} \label{ExistingAlgorithms}
 
 A recent paper by Hirsch, Kessler, and Mendlovic \cite[\S 5.6]{HKM2024} outlines an algorithm for computing $\Phi(n)$ in $\softO(n^{1/2})$ time and space; furthermore, this algorithm has the same space-time tradeoffs as that paper's prime-counting algorithm \cite{HKM2025}, which means that it has a variant that achieves $O(n^{5/9+\varepsilon})$ time and $O(n^{2/9+\varepsilon})$ space for any $\varepsilon>0$.  However, this algorithm and its variants have never been implemented, and the hidden factors are expected to be large enough to make using it noncompetitive for practical $n$.
 
@@ -275,26 +276,26 @@ A recent paper by Hirsch, Kessler, and Mendlovic \cite[\S 5.6]{HKM2024} outlines
 By applying the Dirichlet hyperbola method to the convolution $\phi = \mu * I$, where $I(x)=x$, and letting $ab=n$, we obtain the formula
 \eqn{\Phi(n) = \sum_{x=1}^{a}\sum_{y=1}^{n/x} \mu(x) \, I(y) + \sum_{y=1}^{b}\sum_{x=1}^{n/y} \mu(x) \, I(y) - \sum_{x=1}^{a}\sum_{y=1}^{b} \mu(x) \, I(y)}
 \eqn{ = \sum_{x=1}^{a}\sum_{y=1}^{n/x} y \cdot \mu(x) + \sum_{y=1}^{b}\sum_{x=1}^{n/y} y \cdot \mu(x) - \sum_{x=1}^{a}\sum_{y=1}^{b} y \cdot \mu(x)}
-\neqn{\Phi(n) = \underbrace{\sum_{x=1}^{a} \mu(x) \cdot \frac{\floordiv{n}{x} \cdot \left(\floordiv{n}{x} + 1\right)}{2}}_{X} + \underbrace{\sum_{y=1}^{b} y \cdot M(n/y)}_{Y} - \underbrace{\frac{b \cdot (b+1)}{2} \cdot M(a)}_{Z} \label{PhiFormula}}
+\neqn{\Phi(n) = \underbrace{\sum_{x=1}^{a} \mu(x) \cdot \frac{\floordiv{n}{x} \cdot \left(\floordiv{n}{x} + 1\right)}{2}}_{X} + \underbrace{\sum_{y=1}^{b} y \cdot M(n/y)}_{Y} - \underbrace{\frac{b \cdot (b+1)}{2} \cdot M(a)}_{Z}. \label{PhiFormula}}
 The labels $X$, $Y$, and $Z$ will be used later.
 
-Suppose that we have an algorithm that can compute $M(x)$ in time $\softO(x^c)$, and note that $c < 1$ is available \cite{DR1996}.  Using a sieve to compute the necessary M\"obius values, but otherwise evaluating this formula na\"{i}vely, takes time
+Suppose that we have an algorithm that can compute an individual value of $M(x)$ in time $\softO(x^c)$, and note that $c < 1$ is available \cite{DR1996}.  Using a sieve to compute the necessary M\"obius values, but otherwise evaluating this formula na\"{i}vely, takes time
 \eqn{\softO\left( a + \sum_{x=1}^b \left(\frac{n}{x}\right)^c + a^c \right)}
 \eqn{=\softO\left( a + n^c \integral{x^{-c}}{x}{1}{b} + a^c \right)}
 \eqn{=\softO\left( a + n^c\frac{b^{1-c}}{1-c} - n^c\frac{1^{1-c}}{1-c} + a^c \right)}
 \eqn{=\softO\left( a + n^c b^{1-c} - n^c + a^c \right)}
 %\eqn{=\softO\left( a + n^c n^{1-c} a^{c-1} - n^c + a^c \right)}
-\eqn{=\softO\left( a + n a^{c-1} - n^c + a^c \right)}
+\eqn{=\softO\left( a + n a^{c-1} - n^c + a^c \right).}
 The third term is always dominated by the second, and the fourth is always dominated by the first.
 \eqn{=\softO\left( a + n a^{c-1} \right)}
 To balance the contributions of the two terms, we take $a = \softO(n^{1/(2-c)})$.
 
 The Del\'{e}glise-Rivat algorithm \cite{DR1996} allows $c=2/3$, and so using it in this algorithm results in a time complexity of $\softO(n^{3/4})$.  The Mertens function can also be computed with the Helfgott-Thompson algorithm \cite{HT23}, which takes $\softO(n^{3/5})$ time.  Evaluating (\ref{PhiFormula}) as described then takes $\softO(n^{5/7})$ time.
 
-This algorithm suffers from the fact that all those $M(n/y)$-values are computed one-at-a-time and are not given a chance to contribute to each other.  This can be ameliorated by another application of the Dirichlet hyperbola method.  This time, we use $\delta = \mu * 1$ and set $\alpha\beta=n$ to obtain
+This algorithm suffers from the fact that all those Mertens values are computed one-at-a-time and are not given a chance to contribute to each other.  This can be ameliorated by another application of the Dirichlet hyperbola method.  This time, we use $\delta = \mu * 1$ and set $\alpha\beta=n$ to obtain
 \eqn{\sum_{k=1}^n \delta(k) = \sum_{x=1}^{\alpha}\sum_{y=1}^{n/x} \mu(x) \cdot 1 + \sum_{y=1}^{\beta}\sum_{x=1}^{n/y} \mu(x) \cdot 1 - \sum_{x=1}^{\alpha}\sum_{y=1}^{\beta} \mu(x) \cdot 1}
 \eqn{1 = \sum_{x=1}^{\alpha} \mu(x) \floordiv{n}{x} + \sum_{y=1}^{\beta} M(n/y) - M(\alpha) \floor{\beta}}
-\neqn{M(n) = 1 + \floor{\beta} M(\alpha) - \sum_{x=1}^{\alpha} \mu(x) \floordiv{n}{x} - \sum_{y=2}^{\beta} M(n/y) \label{MertensRecursion}}
+\neqn{M(n) = 1 + \floor{\beta} M(\alpha) - \sum_{x=1}^{\alpha} \mu(x) \floordiv{n}{x} - \sum_{y=2}^{\beta} M(n/y). \label{MertensRecursion}}
 When evaluating (\ref{PhiFormula}), we need to find $\mu(k)$ for $1 \leq k \leq a$, $M(n/k)$ for $1 \leq k \leq b$, and $M(a)$.
 
 When evaluating (\ref{MertensRecursion}), we need to find $\mu(k)$ for $1 \leq k \leq \alpha$, $M(n/k)$ for $2 \leq k \leq \beta$, and $M(\alpha)$.
@@ -312,7 +313,7 @@ $a \gets \floor{\softTheta(n^{2/3})}$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \g
 
 $\chi \gets \floor{n/s}$ \label{1-p1start0}
 
-Prepare a segmented Sieve of Eratosthenes to compute $\mu(k)$ for $1 \leq k \leq a$.
+Prepare a segmented sieve to compute $\mu(k)$ for $1 \leq k \leq a$.
 
 Let $\mu$ and $M$ be arrays indexed from $1$ through $\isqrt{n}$, inclusive. \label{1-muinit}
 
@@ -404,7 +405,7 @@ Algorithm \ref{Algo1} takes $\softTheta(n^{2/3})$ time: phases 0--2 combined cle
 
 Algorithm \ref{Algo1} takes $\softTheta(\sqrt{n})$ space: we use three arrays of $\Theta(\sqrt{n})$ elements each to store the M\"{o}bius and Mertens values, the M\"{o}bius sieving consumes $\softO(\sqrt{a})$ space, and everything else fits in $O(1)$ space.
 
-\section{The Mertens-first algorithm in less space}
+\section{The Mertens-first algorithm in less space} \label{SpaceReduction}
 
 We now reduce Algorithm \ref{Algo1}'s memory usage from $\softTheta(\sqrt{n})$ to $\softTheta(\sqrt[3]{n})$.  The first step is to observe that we can move line \ref{1-p3mobius} into phase 1.  The work done in that line is essentially as follows:
 
@@ -498,7 +499,7 @@ $a \gets \floor{\softTheta(n^{2/3})}$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \g
 
 $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
 
-Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
+Prepare a segmented sieve to compute $\mu(x)$ for $1 \leq x \leq a$.
 
 Let $M$ be an array indexed from $1$ through $\isqrt{n}$, inclusive. \label{7-7}
 
@@ -604,7 +605,7 @@ and, for each such pair, subtracts $M_{\floor{n/(xy)}}$ from $M^\prime_y$.  Note
 \eqn{k \leq \frac{n}{xy} < k+1,}
 or equivalently,
 \eqn{\frac{n}{k+1} < xy \leq \frac{n}{k}.}
-Addressing a single $k$ at a time is awfully close to factoring $\floor{n/k}$.  To avoid breaking the clock, we will instead gather a block of consecutive Mertens values and address them all at once.  When this algorithm is fully developed, the memory usage will be $\softO(\sqrt[3]{n})$ due to the array $M^\prime$ and storage inside the M\"{o}bius siever; we will therefore gather Mertens batches of size $b$.  The high index of each batch will be $x$, and the low index will be $A \defeq 1 + b \cdot \floor{x/b}$.  The result is that, when processing each batch, we will be looking for all pairs $(t, \ell)$ such that
+Handling a single $k$ at a time is awfully close to factoring $\floor{n/k}$.  To avoid breaking the clock, we will instead gather a block of consecutive Mertens values and handle them all at once.  When this algorithm is fully developed, the memory usage will be $\softO(\sqrt[3]{n})$ due to the array $M^\prime$ and storage inside the M\"{o}bius siever; we will therefore gather Mertens batches of size $b$.  The high index of each batch will be $x$, and the low index will be $A \defeq 1 + b \cdot \floor{x/b}$.  The result is that, when processing each batch, we will be looking for all pairs $(t, \ell)$ such that
 \eqn{1 \leq t \leq b \qquadtext{and} 2 \leq \ell \leq \sqrt{n/t} \qquadtext{and} A = b \cdot \floordiv{x}{b} + 1 \qquadtext{and} A \leq \floordiv{n}{\ell t} \leq x.}
 Since $A$ and $x$ are integers, the rightmost condition is equivalent to
 \eqn{A \leq \frac{n}{\ell t} < x + 1,}
@@ -659,7 +660,7 @@ $a \gets \floor{\softTheta(n^{2/3})}$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \g
 
 $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
 
-Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
+Prepare a segmented sieve to compute $\mu(x)$ for $1 \leq x \leq a$.
 
 Let $\mathcal{M}$ be an array of size $b$.  Its indexing will vary as the algorithm executes. \label{10-5}
 
@@ -794,7 +795,7 @@ $a \gets \floor{\softTheta(n^{2/3})}$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \g
 
 $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
 
-Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
+Prepare a segmented sieve to compute $\mu(x)$ for $1 \leq x \leq a$.
 
 Let $\mathcal{M}$ be an array of size $b$.  Its indexing will vary as the algorithm executes.
 
@@ -893,19 +894,19 @@ Let $M^\prime$ be an array indexed from $1$ to $b$, inclusive, initialized to al
 \KwRet $X + Y - Z$
 \end{algorithm}
 
-We have now hit our target time- and space-complexities, but some further optimization can be done.  In particular, the iteration over $t$ in phase 3---lines \ref{12-45}--\ref{12-47}---can be made more efficient.  The conditions on $x$ are
-\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} \isqrt{n} < \floordiv{\floor{n/y}}{x} \qquadtext{and} \floordiv{n}{\floor{\floor{n/y}/x}} \leq b,}
+We have now hit our target time- and space-complexities, but some further optimization can be done.  In particular, the iteration over $t$ in phase 3---lines \ref{12-45}--\ref{12-47}---can be made more efficient.  The conditions on $t$ are
+\eqn{2 \leq t \leq \isqrt{n/y} \qquadtext{and} \isqrt{n} < \floordiv{\floor{n/y}}{t} \qquadtext{and} \floordiv{n}{\floor{\floor{n/y}/t}} \leq b,}
 which is equivalent to
 %\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} \isqrt{n}+1 \leq \floordiv{\floor{n/y}}{x} \qquadtext{and} \floordiv{n}{\floor{\floor{n/y}/x}} \leq b}
-\eqn{2 \leq x \leq \isqrt{n/y} \qquadtext{and} \isqrt{n}+1 \leq \frac{\floor{n/y}}{x} \qquadtext{and} \frac{n}{\floor{\floor{n/y}/x}} < b+1.}
-Since $x$ is an integer, we can drop the floor function from the first inequality.
-\eqn{2 \leq x \leq \sqrt{n/y} \qquadtext{and} x \leq \frac{\floor{n/y}}{\isqrt{n}+1} \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{x}.}
-By Lemmas \ref{lemma1} and \ref{pmoiuvwq}, we can drop the $x \leq \sqrt{n/y}$ condition and the middle inequality, leaving us with
-\eqn{2 \leq x \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{x}.}
+\eqn{2 \leq t \leq \isqrt{n/y} \qquadtext{and} \isqrt{n}+1 \leq \frac{\floor{n/y}}{t} \qquadtext{and} \frac{n}{\floor{\floor{n/y}/t}} < b+1.}
+Since $t$ is an integer, we can drop the floor function from the first inequality.
+\eqn{2 \leq t \leq \sqrt{n/y} \qquadtext{and} t \leq \frac{\floor{n/y}}{\isqrt{n}+1} \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{t}.}
+By Lemmas \ref{lemma1} and \ref{pmoiuvwq}, we can drop the $t \leq \sqrt{n/y}$ condition and the middle inequality, leaving us with
+\eqn{2 \leq t \qquadtext{and} \frac{n}{b+1} < \floordiv{\floor{n/y}}{t}.}
 
 A further improvement can be had by inserting ``and $\mu(x) \neq 0$" into line \ref{12-14}.
 
-Making the corresponding edits modifies lines \ref{12-14}, \ref{12-46}, and \ref{12-47} to yield Algorithm \ref{Algo13}.
+Making the corresponding edits modifies lines \ref{12-14}, \ref{12-45}, and \ref{12-46} to yield Algorithm \ref{Algo13}.
 
 \begin{algorithm}[H] \label{Algo13}
 \DontPrintSemicolon \footnotesize
@@ -918,7 +919,7 @@ $a \gets \floor{\softTheta(n^{2/3})}$; $b \gets \floor{n/a}$; $X \gets 0$; $Y \g
 
 $\chi \gets \floor{n/s}$; $\gamma \gets \isqrt{n/d}$
 
-Prepare a segmented Sieve of Eratosthenes to compute $\mu(x)$ for $1 \leq x \leq a$.
+Prepare a segmented sieve to compute $\mu(x)$ for $1 \leq x \leq a$.
 
 Let $\mathcal{M}$ be an array of size $b$.  Its indexing will vary as the algorithm executes.
 
@@ -1000,12 +1001,12 @@ Let $M^\prime$ be an array indexed from $1$ to $b$, inclusive, initialized to al
     
     $m \gets 0$
     
-    \For{$x \in \set{2,3,4,...}$}{ \label{13-45}
+    \For{$t \in \set{2,3,4,...}$}{ \label{13-45}
         \addtocounter{AlgoLine}{3}
         
-        \lIf{$\disp \frac{n}{b+1} \geq \floordiv{v}{x}$}{\KwBreak} \label{13-46}
+        \lIf{$\disp \frac{n}{b+1} \geq \floordiv{v}{t}$}{\KwBreak} \label{13-46}
         
-        $m \gets m - M^\prime_{\floor{n/\floor{v/x}}}$ \label{13-48}
+        $m \gets m - M^\prime_{\floor{n/\floor{v/t}}}$ \label{13-48}
     }
     $M^\prime_y \gets M^\prime_y + m$
     
@@ -1017,9 +1018,9 @@ Let $M^\prime$ be an array indexed from $1$ to $b$, inclusive, initialized to al
 \KwRet $X + Y - Z$
 \end{algorithm}
 
-\section{Analysis of Algorithm \ref{Algo13}}
+\section{Analysis of Algorithm \ref{Algo13}} \label{Analysis}
 
-The lines that (have the potential to) dominate the execution time are the M\"{o}bius siever, \ref{13-16}, \ref{13-18}--\ref{13-20}, \ref{13-27}, \ref{13-38}, and \ref{13-46}--\ref{13-48}.
+The inner loops of Algorithm \ref{Algo13} are inside the M\"{o}bius siever and lines \ref{13-16}, \ref{13-18}--\ref{13-20}, \ref{13-27}, \ref{13-38}, and \ref{13-46}--\ref{13-48}.
 
 \begin{lemma} \label{13-M-time}
 The M\"{o}bius sieving consumes $\Theta(a \ln(\ln(a)))$ time.
@@ -1089,7 +1090,7 @@ The first batch ($x=b$) and that possible last batch $(x=\isqrt{n} \not\equiv 0 
 The time consumed by this extract is
 \eqn{\sum_{t=1}^b \left( 1 + \max\left( \ell_{max} - \ell_{min} , 0 \right) \right)}
 \eqn{= \sum_{t=1}^b \left( 1 + \max\left( \min\left( \isqrt{n/t} , \floordiv{n}{t} \right) - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right) \right)}
-\eqn{= b + \sum_{t=1}^b \max\left( \min\left( \isqrt{n/t} , \floordiv{n}{t} \right) - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right)}
+\eqn{= b + \sum_{t=1}^b \max\left( \min\left( \isqrt{n/t} , \floordiv{n}{t} \right) - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right).}
 We have $0 < t < n$, so $\sqrt{n/t} \leq n/t$.
 \eqn{= b + \sum_{t=1}^b \max\left( \isqrt{n/t} - 1 - \floordiv{n}{t \cdot (b+1)} , 0 \right)}
 For $b \leq n^{1/3}$, Lemma \ref{ouawrt4coi} establishes that the first argument of the $\max$ function is negative, so the time consumed by the extract is $O(b)$.  The case $b > n^{1/3}$ is a bit more complicated: in this case, the $\max$ function's first argument prevails for
@@ -1176,12 +1177,12 @@ On each iteration through phase 2 in which line \ref{13-38} gets hit, it gets hi
 times, where $f(t,y)$ is the number of integers $t$ that satisfy (\ref{cbafnlj}).
 
 We need to determine which values of $A$ and $B$ happen.  The $k$\textsuperscript{th} value of $x$ such that $M(x)$ gets saved during phase 2 is approximately
-\eqn{x_k \defeq \frac{n}{\sqrt{n} - k}.}
+\eqn{\frac{n}{\sqrt{n} - k}.}
 We accumulate batches of size $b$, so a batch will be processed when $k \mid b$; the first batch has $k=b$ and the last batch will have $k \approx \sqrt{n} - \sqrt[3]{n}$.  The $j$\textsuperscript{th} batch will then have
 \eqn{A \approx \sqrt{n} - b \cdot (j-1) \qquadtext{and} B \approx \sqrt{n} - bj.}
 When processing the $j$\textsuperscript{th} batch, the bounds on $t$ are therefore approximately
 \eqn{2 \leq t \leq \sqrt{n/y} \quadtext{and} \sqrt{n} < \frac{n}{ty} \quadtext{and} \sqrt{n}-bj \leq ty \leq \sqrt{n}-b\cdot(j-1)}
-\eqn{2 \leq t \leq \sqrt{n/y} \quadtext{and} t < \frac{\sqrt{n}}{y} \quadtext{and} \frac{\sqrt{n}-bj}{y} \leq t \leq \frac{\sqrt{n}-bj}{y}+\frac{b}{y}.}
+\eqn{2 \leq t \leq \sqrt{\frac{n}{y}} \quadtext{and} t < \frac{\sqrt{n}}{y} \quadtext{and} \frac{\sqrt{n}-bj}{y} \leq t \leq \frac{\sqrt{n}-bj}{y}+\frac{b}{y}.}
 The second condition and the upper side of the first condition are both weaker than the upper side of the third condition.
 \eqn{2 \leq t \quadtext{and} \frac{\sqrt{n}-bj}{y} \leq t \leq \frac{\sqrt{n}-bj}{y}+\frac{b}{y}}
 Therefore
@@ -1193,7 +1194,6 @@ There are $\Theta(\sqrt{n}-\sqrt[3]{n})$ values of $x$ such that $M(x)$ gets sav
 \eqn{\Theta\left( \frac{\sqrt{n}-\sqrt[3]{n}}{b} \right)}
 batches.  The total time devoted to line \ref{13-38} across all iterations through phase 2 is therefore
 \eqn{\Theta\left( b \ln(b) \right) \cdot \Theta\left( \frac{\sqrt{n}-\sqrt[3]{n}}{b} \right)}
-\eqn{= \Theta\left( b \ln(b) \right) \cdot \Theta\left( \frac{\sqrt{n}}{b} \right)}
 \eqn{= \Theta\left( \sqrt{n} \ln(b) \right),}
 as desired.
 \end{proof}
@@ -1218,30 +1218,32 @@ The correctness of the algorithm is evident by its development, and the space co
 For the time complexity, Lemmas \ref{13-M-time}, \ref{13-16-time}, and \ref{Algo13mintime} prove that the minimum possible time for a subsection of the algorithm is $\Theta\left( n^{2/3} \cdot (\ln(\ln(n)))^{1/3} \right)$ and that this is obtained by selecting $a = \Theta\left((n/\ln(\ln(n)))^{2/3}\right)$, while Lemmas \ref{13-27-time}, \ref{13-38-time}, and \ref{13-46-48-time} establish that, with this parmeter selection, the rest of the algorithm does not exceed this time complexity.
 \end{proof}
 
-\section{Computational results}
+\section{Computational results} \label{ComputationalResults}
 
 The data in Table \ref{Phitable} was procured by running \texttt{totientsum.py} under PyPy3 on a computer with an AMD Ryzen 9 7950X CPU and 128 GB of RAM.  The times are wall-clock times; the space requirements are maximum resident-set sizes reported by the command \texttt{/usr/bin/time -v}.
 
 \begin{table}[h]
 \centering
 \begin{tabular}{|c|l|r|r|r|r|} \hline
-\multirow{2}{*}{$n$} & \multicolumn{1}{c|}{\multirow{2}{*}{$\Phi(n)$}} & \multicolumn{3}{c|}{Time (s)} & Memory \\\cline{3-5}
-          &                                        & Phase 1 & Phase 2 &  Total &    (kb) \\\hline
-$10^{13}$ & 30396355092702898919527444             &       5 &       8 &     13 &   95612 \\\hline
-$10^{14}$ & 3039635509270144893910357854           &      22 &      33 &     56 &  122480 \\\hline
-$10^{15}$ & 303963550927013509478708835152         &      96 &     154 &    250 &  193868 \\\hline
-$10^{16}$ & 30396355092701332166351822199504       &     459 &     754 &   1214 &  331492 \\\hline
-$10^{17}$ & 3039635509270133156701800820366346     &    2114 &    3803 &   5916 &  712492 \\\hline
-$10^{18}$ & 303963550927013314319686824781290348   &   10135 &   18691 &  28826 & 1695468 \\\hline
-$10^{19}$ & 30396355092701331435065976498046398788 &  614160 &  162208 & 776388 & 6586924 \\\hline
+\multirow{2}{*}{$n$} & \multicolumn{1}{c|}{\multirow{2}{*}{$\Phi(10^n)$ \qquad \seqnum{A064018}($n$)}} & \multicolumn{3}{c|}{Time (s)} & Memory \\\cline{3-5}
+   &                                        & Phase 1 & Phase 2 &  Total &    (kb) \\\hline
+13 & 30396355092702898919527444             &       5 &       8 &     13 &   95612 \\\hline
+14 & 3039635509270144893910357854           &      22 &      33 &     56 &  122480 \\\hline
+15 & 303963550927013509478708835152         &      96 &     154 &    250 &  193868 \\\hline
+16 & 30396355092701332166351822199504       &     459 &     754 &   1214 &  331492 \\\hline
+17 & 3039635509270133156701800820366346     &    2114 &    3803 &   5916 &  712492 \\\hline
+18 & 303963550927013314319686824781290348   &   10135 &   18691 &  28826 & 1695468 \\\hline
+19 & 30396355092701331435065976498046398788 &  614160 &  162208 & 776388 & 6586924 \\\hline
 \end{tabular}
-\caption{Computation of some values of $\Phi(n)$.}
+\caption{Computation of some values of $\Phi$.}
 \label{Phitable}
 \end{table}
 
-Based on the algorithm's space- and time-complexities, one would expect the computation of $\Phi(10^{19})$ to take about 160,000 seconds and occupy about 3.6 GB.  The reason for the deviation from this expectation is presumably that $n$ has ceased to be a 64-bit number.
+The values of $\Phi(10^n)$ for $n \in \set{13, \ldots, 18}$ were already known; the values computed here match those at \url{https://oeis.org/A064018/b064018.txt}.
 
-\section{Supporting lemmas}
+The computation of $\Phi(10^{19})$ is new.  Based on the algorithm's space- and time-complexities, one would expect the computation of $\Phi(10^{19})$ to take about 160,000 seconds and occupy about 3.6 GB.  The reason for the deviation from this expectation is presumably that $10^{18}$ fits in a single 64-bit machine word while $10^{19}$ does not.  To guard against computer glitches, the computation was run twice; the results matched.
+
+\section{Supporting lemmas} \label{SupportingLemmas}
 
 \begin{lemma} \label{lemma1}
 Let $n$ and $y$ be integers such that $1 \leq y \leq \sqrt{n}$.  Then
@@ -1265,8 +1267,6 @@ With $b$, $n$, $x$, and $y$ as in lines \ref{12-45}--\ref{12-47},
 The hypothesis can be weakened by dropping the outer floor function, yielding
 \eqn{\frac{n}{b+1} < \frac{\floor{n/y}}{x}}
 and therefore
-\eqn{x < \frac{\floor{n/y}}{n/(b+1)}.}
-This can be weakened further to
 \eqn{x \leq \frac{\floor{n/y}}{n/(b+1)}.}
 Since $b = \softTheta(n^{1/3})$, we have $n/(b+1) > \isqrt{n} + 1$, and the conclusion follows immediately.
 \end{proof}
@@ -1312,15 +1312,11 @@ Suppose that $2 \leq t$ and $b = o(\sqrt{n})$.  Then for sufficiently large $n$,
 \eqn{\floordiv{n}{t \cdot \left(1 + b \cdot \dfloordiv{\isqrt{n}}{b}\right)} \leq \isqrt{n/t}.}
 \end{lemma}
 \begin{proof}
-Since $b = o(n^{1/2})$, we have
-\eqn{\sqrt{\frac{n}{2}} \leq \isqrt{n} - b}
-for sufficiently large $n$.  This can be weakened to
-\eqn{ \leq \isqrt{n} - (\isqrt{n} \bmod b)}
-\eqn{ = b \cdot \floordiv{\isqrt{n}}{b}}
-\eqn{ < b \cdot \floordiv{\isqrt{n}}{b} + 1.}
-By hypothesis, $t \geq 2$, so we can weaken this to
+We begin with
+\eqn{\sqrt{\frac{n}{2}} < \isqrt{n} - b + 1 < \isqrt{n} - (\isqrt{n} \bmod b) + 1 = b \cdot \floordiv{\isqrt{n}}{b} + 1.}
+The first inequality is true for sufficiently large $n$ because $b = o(n^{1/2})$; the rest is arithmetic.  By hypothesis, $t \geq 2$, so we can weaken this to
 \eqn{\sqrt{\frac{n}{t}} < 1 + b \cdot \floordiv{\isqrt{n}}{b}}
-\eqn{\frac{\sqrt{n/t}}{1 + b \cdot \dfloordiv{\isqrt{n}}{b}} < 1}
+and therefore
 \eqn{\frac{n/t}{1 + b \cdot \dfloordiv{\isqrt{n}}{b}} < \sqrt{n/t}.}
 Applying the floor function to both sides then yields the desired result.
 \end{proof}
@@ -1400,8 +1396,7 @@ as desired.
 \end{proof}
 
 \begin{lemma} \label{mfeqljk_u}
-For $1 + b \leq u \leq 1 + \sqrt{n}$ and large $n$,
-\eqn{\frac{bn}{(u-b) \cdot u} > b.}
+For $1 + b \leq u \leq 1 + \sqrt{n}$ and large $n$, $\dfrac{bn}{(u-b) \cdot u} > b$.
 \end{lemma}
 \begin{proof}
 Since $\sqrt{n} > u-1$, we have
@@ -1445,7 +1440,7 @@ For $u > 5$, we have
 Integrating then gives the desired result.
 \end{proof}
 
-\nocite{*}
+%\nocite{*}
 
 \setlength{\bibitemsep}{\parskip}
 \printbibliography[heading=bibnumbered]
