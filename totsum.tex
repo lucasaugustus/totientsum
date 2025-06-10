@@ -255,14 +255,14 @@ The letter $M$ is used for both the Mertens function and an array such that $M_k
 
 The letter $\delta$ denotes the identity function for Dirichlet convolution: $\delta(1)=1$, and $\delta(x)=0$ for all other $x$.
 
-The reported time and space complexities count the number of arithmetic operations used and the number of integers stored, not bit operations and bits stored.
+The reported time and space complexities count the arithmetic operations used and the integers stored, not bit operations and bits stored.
 
 \subsection{Overview of the paper}
 
 \begin{itemize}
 \item In Section \ref{ExistingAlgorithms}, we review some existing algorithms.
 \item In Section \ref{SpaceReduction}, we modify one such algorithm to reduce its space complexity from $\Theta(n^{1/2})$ to $\softTheta(n^{1/3})$, culminating in Algorithm \ref{Algo13}.
-\item In Section \ref{Analysis}, we analyze Algorithm \ref{Algo13}, concluding in Theorem \ref{Algo13time} that, with its optimal parameter selection, it takes $\Theta\left( (n / \ln(\ln(n)))^{2/3} \right)$ time and $\Theta\left(n^{1/3} \cdot (\ln(\ln(n)))^{2/3} \right)$ space.
+\item In Section \ref{Analysis}, we analyze Algorithm \ref{Algo13}, concluding in Theorem \ref{Algo13time} that, with its optimal parameter selection, it takes $\Theta\left( (n / \ln(\ln(n)))^{1/3} \right)$ time and $\Theta\left(n^{1/3} \cdot (\ln(\ln(n)))^{2/3} \right)$ space.
 \item In Section \ref{ComputationalResults}, we present the results of running Algorithm \ref{Algo13} on various inputs.
 \item Finally, Section \ref{SupportingLemmas} contains some supporting lemmas.
 \end{itemize}
@@ -1466,3 +1466,5 @@ Integrating then gives the desired result.
 \noindent (Concerned with sequences \seqnum{A002088} and \seqnum{A064018}.)
 
 \end{document}
+
+\typeout{get arXiv to do 4 passes: Label(s) may have changed. Rerun}
