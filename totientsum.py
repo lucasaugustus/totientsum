@@ -43,44 +43,6 @@ def primegen(limit=inf):
 
 
 
-def introot(n, r=2):    # TODO Newton iteration?
-    """
-    Returns the rth root of n, rounded to the nearest integer in the
-    direction of zero.  Returns None if r is even and n is negative.
-    
-    Input:
-        n -- an integer
-        r -- a natural number or None
-    
-    Output: An integer
-    
-    Examples:
-    
-    >>> [introot(-729, 3), introot(-728, 3)]
-    [-9, -8]
-    
-    >>> [introot(1023, 2), introot(1024, 2)]
-    [31, 32]
-    """
-    if n < 0: return None if r%2 == 0 else -introot(-n, r)
-    if n < 2: return n
-    if r == 1: return n
-    if r == 2: return isqrt(n)
-    if r % 2 == 0: return introot(isqrt(n), r//2)
-    lower = upper = 1 << (n.bit_length() // r)
-    while lower ** r >  n: lower >>= 2
-    while upper ** r <= n: upper <<= 2
-    while lower != upper - 1:
-        mid = (lower + upper) // 2
-        m = mid**r
-        if   m == n: return  mid
-        elif m <  n: lower = mid
-        elif m >  n: upper = mid
-    return lower
-
-
-
-
 def mobiussieve(limit=inf):
     """
     Uses a segmented sieve to compute the Mobius function for all positive
@@ -132,7 +94,7 @@ def mobiussieve(limit=inf):
 def totientsum(n):
     if n <= 10: return 0 if n < 0 else (0,1,2,4,6,10,12,18,22,28,32)[n]
     
-    a = introot(int((n / log(log(n)))**2), 3)
+    a = int((n / log(log(n)))**(2/3))
     b = n // a
     nr = isqrt(n)
     if verbose:
@@ -252,7 +214,6 @@ verbose = True
 if __name__ == "__main__":
     from sys import argv
     print(totientsum(int(argv[1])))
-
 
 
 
