@@ -192,10 +192,8 @@ def totientsum(n):
     
     for y in range(b, 0, -1):
         v = n // y
-        vr = isqrt(v)
         Mv = 0
-        for t in count(2):
-            if n >= (b+1) * (v//t): break
+        for t in range(2, (n//y) // (n//(b+1) + 1) + 1):
             Mv -= Mover[n//(v//t)]
         # Mv is now Mertens(v).
         Mover[y] += Mv
