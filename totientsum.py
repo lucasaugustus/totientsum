@@ -104,6 +104,7 @@ def totientsum(n):
         print("        b:", b)
         print("  sqrt(n):", nr)
         print("        a:", a)
+        print("        n:", n)
         starttime = time()
         p2batchnum = 0
     Mover = [0] * (b + 1)  # Mover[n//x] will store Mertens(x) for large x.
@@ -119,7 +120,6 @@ def totientsum(n):
     xp = isqrt(n//d)
     
     for (x, mu) in enumerate(mobiussieve(a+1), start=1):
-        #if x == 100: exit()
         v = int(str(n // x))    # The int(str( ... )) pushes us back down into the 64-bit data types, when applicable.
         mert += mu
         X += mu * (v * (v+1) // 2)
